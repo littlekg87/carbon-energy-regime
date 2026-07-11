@@ -8,6 +8,8 @@
 
 **🌐 라이브 데모 → https://littlekg87.github.io/carbon-energy-regime/**
 
+![통합 지도 화면 — 생산·유통·철도망 레이어를 겹쳐 본 1917년 상태. 무순에서 조선·일본·화북 등으로 뻗는 석탄 수출 호, 경영유형별 탄광 점, 철도역 100km 버퍼가 함께 표시된다.](source/capture_01.jpg)
+
 ---
 
 ## ✨ 특징
@@ -77,13 +79,13 @@ README.md                              이 문서
 
 **English**
 
-> Kim, Geun-ha. *Carbon Energy Regime in Modern East Asia: An Integrated Interactive Map of Fushun.* Sogang University Institute for Digital History, 2026. https://github.com/littlekg87/carbon-energy-regime.
+> Kim, Kunha. *Carbon Energy Regime in Modern East Asia: An Integrated Interactive Map of Fushun.* Sogang University Institute for Digital History, 2026. https://github.com/littlekg87/carbon-energy-regime.
 
 **BibTeX**
 
 ```bibtex
 @misc{kim2026carbonregime,
-  author       = {Kim, Geun-ha},
+  author       = {Kim, Kunha},
   title        = {Carbon Energy Regime in Modern East Asia: An Integrated Interactive Map of Fushun},
   year         = {2026},
   howpublished = {\url{https://github.com/littlekg87/carbon-energy-regime}},
@@ -101,9 +103,10 @@ README.md                              이 문서
 
 ## 📄 라이선스 / 크레딧
 
-- 코드: 서강대학교 디지털역사연구소.
-- 지도/데이터 라이브러리는 각 프로젝트 라이선스(MIT/BSD 등)를 따릅니다.
-- 배경지도·해안선은 각 제공처(CARTO/OSM, Natural Earth) 표기를 유지하세요.
+- 이 저장소의 **데이터·콘텐츠·코드**는 **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)** (크리에이티브 커먼즈 저작자표시 4.0 국제)으로 배포됩니다. 자유롭게 복제·수정·재배포할 수 있으며, **위 「인용 방법」의 출처 표기**를 유지해 주세요. 전문은 [`LICENSE`](LICENSE) 참고.
+- © 2026 김근하(Kim Kunha), 서강대학교 디지털역사연구소.
+- 제3자 라이브러리(MapLibre GL JS·deck.gl·Chart.js)는 각 프로젝트 라이선스(BSD/MIT 등)를 따릅니다.
+- 배경지도·해안선은 각 제공처 표기를 유지하세요: © [CARTO](https://carto.com/), © OpenStreetMap contributors, [Natural Earth](https://www.naturalearthdata.com/)(public domain).
 
 ---
 
