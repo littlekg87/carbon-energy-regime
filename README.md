@@ -2,8 +2,7 @@
 
 무순(撫順)을 중심으로 **석탄(탄소)의 노동·생산·유통 전 과정**을 하나의 지도 위에 겹쳐 보는 인터랙티브 GIS 데모입니다. 노동 유입, 탄광 생산(경영유형), 석탄 유통(수출), 철도망·버퍼 분석의 **네 레이어를 자유롭게 중첩**하고 **연도축**을 따라 흐름을 관찰할 수 있습니다.
 
-> 서강대학교 디지털역사연구소 · 한국연구재단 인문사회연구소지원사업
-> 연구주제: 근현대 동아시아 탄소 에너지 레짐
+> 서강대학교 디지털역사연구소
 
 ![status](https://img.shields.io/badge/type-self--contained%20HTML-blue) ![offline](https://img.shields.io/badge/offline-double--click-green) ![engine](https://img.shields.io/badge/engine-MapLibre%20%2B%20deck.gl-orange)
 
