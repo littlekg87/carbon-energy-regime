@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>근현대 동아시아 탄소 에너지 레짐 — 무순 통합 지도</title>
+  <style>
+/*__MAPLIBRE_CSS__*/
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; width: 100%; overflow: hidden;
+      font-family: system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+      display: flex; flex-direction: column; background: #eef1f5; }
+    #mapWrap { position: relative; flex: 1 1 0%; min-height: 0; width: 100%; }
+    #map { position: absolute; inset: 0; background: #dfe6ee; }
+
+    /* ---- Left control panel ---- */
+    #ui {
+      position: absolute; left: 12px; top: 12px; z-index: 4;
+      width: min(392px, calc(100vw - 24px));
+      max-height: calc(100% - 24px);
+      overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      background: rgba(255, 255, 253, 0.965); backdrop-filter: blur(10px);
+      border: 1px solid rgba(15, 23, 42, 0.12); border-radius: 14px;
+      padding: 15px 16px 16px; color: #14181f; font-size: 13px; line-height: 1.45;
+      box-shadow: 0 10px 34px rgba(15, 23, 42, 0.18);
+    }
+    #ui .eyebrow {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+      color: #b0186b; margin: 0 0 4px;
+    }
+    #ui h1.deck-title {
+      margin: 0 0 6px; font-size: clamp(1.05rem, 2.1vw, 1.32rem); font-weight: 800;
+      letter-spacing: -0.03em; color: #10131a; line-height: 1.25;
+    }
+    #ui p.deck-lead {
+      margin: 0 0 13px; font-size: 11.5px; line-height: 1.55; color: #4a5163;
+    }
+    #ui p.deck-lead strong { color: #1f2634; }
+
+    .layers { display: flex; flex-direction: column; gap: 8px; margin: 0 0 13px; }
+    .layer-card {
+      border: 1px solid rgba(15, 23, 42, 0.13); border-radius: 11px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(247,248,251,0.95));
+      overflow: hidden; transition: border-color 0.14s, box-shadow 0.14s;
+    }
+    .layer-card.on { box-shadow: 0 2px 12px rgba(15,23,42,0.08); }
+    .layer-head { display: flex; align-items: flex-start; gap: 9px; padding: 9px 11px; cursor: pointer; }
+    .layer-head input { margin: 2px 0 0; width: 16px; height: 16px; cursor: pointer; flex: 0 0 auto; accent-color: #b0186b; }
+    .layer-swatch { flex: 0 0 auto; width: 12px; height: 12px; border-radius: 3px; margin-top: 3px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.18) inset; }
+    .layer-txt { flex: 1 1 auto; min-width: 0; }
+    .layer-name { font-size: 12.5px; font-weight: 750; color: #171b24; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+    .layer-name .yr-badge { font-size: 9.5px; font-weight: 650; color: #6b7280; letter-spacing: 0.02em; }
+    .layer-claim { font-size: 10.8px; line-height: 1.4; color: #57607a; margin-top: 2px; }
+    .layer-more {
+      max-height: 0; overflow: hidden; transition: max-height 0.22s ease;
+      border-top: 0 solid rgba(15,23,42,0.08);
+    }
+    .layer-card.expanded .layer-more { max-height: 260px; border-top-width: 1px; }
+    .layer-more-inner { padding: 9px 11px 11px; font-size: 10.8px; line-height: 1.55; color: #4a5163; }
+    .layer-more-inner .why { color: #10131a; font-weight: 650; }
+    .disclosure { font-size: 10px; color: #8a93a6; cursor: pointer; user-select: none;
+      padding: 0 11px 8px; margin-top: -3px; }
+    .disclosure:hover { color: #b0186b; }
+
+    .buffer-toggles { display: none; gap: 5px; flex-wrap: wrap; padding: 0 11px 10px 34px; }
+    .layer-card.on .buffer-toggles { display: flex; }
+    .buffer-toggles .bt {
+      font-size: 10.5px; font-weight: 650; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid rgba(15,23,42,0.2); background: #fff; color: #475069; cursor: pointer;
+      font-variant-numeric: tabular-nums;
+    }
+    .buffer-toggles .bt.on { background: #334155; border-color: #334155; color: #fff; }
+
+    .ui-section { margin: 3px 0 7px; font-size: 10.5px; font-weight: 750; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #6b7280; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 9px; }
+    .row label.rl { min-width: 34px; color: #4a5066; font-size: 11.5px; }
+    input[type="range"] { flex: 1; min-width: 150px; accent-color: #b0186b; }
+    #yearLabel { font-variant-numeric: tabular-nums; font-weight: 800; min-width: 40px; text-align: right;
+      font-size: 15px; color: #10131a; }
+    .btns { display: flex; gap: 7px; }
+    button.tb {
+      cursor: pointer; border: 1px solid rgba(15,23,42,0.16); background: #fff; color: #2a2f3d;
+      padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    }
+    button.tb:hover { background: #fff5fa; border-color: rgba(176,24,107,0.4); }
+    button.tb.on { background: rgba(176,24,107,0.16); border-color: rgba(176,24,107,0.7); color: #7a0c47; }
+
+    #legendWrap { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(15,23,42,0.09); }
+    .leg-block { margin: 0 0 10px; }
+    .leg-block:last-child { margin-bottom: 0; }
+    .leg-h { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      color: #6b7280; margin: 0 0 5px; }
+    .leg-item { font-size: 11px; margin: 3px 0; color: #3d4456; display: flex; align-items: center; gap: 7px; }
+    .leg-dot { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset; }
+    .leg-line { width: 18px; height: 0; border-top-width: 3px; border-top-style: solid; flex: 0 0 auto; }
+    .amount-scale { height: 10px; border-radius: 5px; margin: 3px 0 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08) inset; }
+    .scale-labels { display: flex; justify-content: space-between; font-size: 9.5px; color: #6b7280; margin: 0 0 4px; }
+
+    #err { display: none; margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+      background: rgba(220, 80, 80, 0.1); border: 1px solid rgba(200, 60, 60, 0.35);
+      color: #8b1a1a; font-size: 11px; }
+    #offlineNote { display: none; margin-top: 8px; padding: 7px 9px; border-radius: 8px;
+      background: rgba(180, 130, 0, 0.1); border: 1px dashed rgba(160, 110, 0, 0.4);
+      color: #6b4d00; font-size: 10.5px; line-height: 1.45; }
+
+    /* ---- Always-visible caption (for static / PDF) ---- */
+    #caption {
+      position: absolute; left: 12px; bottom: 12px; z-index: 3;
+      max-width: min(340px, calc(100vw - 24px));
+      background: rgba(16, 19, 26, 0.82); color: #f4f6fa; backdrop-filter: blur(4px);
+      border-radius: 10px; padding: 9px 12px; font-size: 10.5px; line-height: 1.5;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.28); pointer-events: none;
+    }
+    #caption b { color: #ff9ecb; }
+    #caption .src { color: #aab2c5; font-size: 9.5px; margin-top: 3px; display: block; }
+
+    /* ---- Bottom chart dock ---- */
+    #chartDock {
+      flex: 0 0 auto; width: 100%; z-index: 3;
+      background: rgba(255, 255, 253, 0.98); border-top: 1px solid rgba(15,23,42,0.12);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+      padding: 7px 12px 9px; display: flex; gap: 12px; align-items: stretch;
+      max-height: 30vh; min-height: 0; overflow-x: auto; overflow-y: hidden;
+    }
+    #chartDock.empty { display: none; }
+    .chart-panel { flex: 1 1 0; min-width: 300px; display: flex; flex-direction: column; }
+    .chart-panel.is-hidden { display: none; }
+    .chart-panel h3 { margin: 0 0 3px; font-size: 10.5px; font-weight: 750; color: #4a5066; letter-spacing: 0.01em; }
+    .chart-panel h3 .tag { font-weight: 800; }
+    .chart-panel.dist h3 .tag { color: #b0186b; }
+    .chart-panel.labor h3 .tag { color: #b47a00; }
+    .chart-panel.buffer h3 .tag { color: #334155; }
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; flex: 1 1 auto; min-height: 0; }
+    .chart-cell { position: relative; height: min(16vh, 150px); min-height: 82px; }
+    .chart-cell.wide { grid-column: 1 / -1; height: min(11vh, 100px); min-height: 66px; }
+    .chart-single { position: relative; flex: 1 1 auto; height: min(22vh, 190px); min-height: 120px; }
+    #chartDock canvas { display: block; width: 100% !important; height: 100% !important; }
+
+    @media (max-width: 720px) {
+      #ui { width: calc(100vw - 24px); max-height: 52%; }
+      #caption { display: none; }
+      .chart-panel { min-width: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="mapWrap">
+    <div id="map" aria-label="지도"></div>
+
+    <div id="ui">
+      <p class="eyebrow">서강대 디지털역사연구소 · 탄소 에너지 레짐</p>
+      <h1 class="deck-title">무순(撫順)을 중심으로 본 근현대 동아시아 석탄의 초국가적 생애</h1>
+      <p class="deck-lead">
+        하나의 지도, <strong>네 겹의 레이어</strong>. 노동이 어떻게 <strong>유입</strong>되고, 석탄이 어디서
+        <strong>생산</strong>되며, 어디로 <strong>유통</strong>되었는지, 그리고 그 입지가 <strong>철도망</strong>에
+        얼마나 종속되었는지를 겹쳐 봅니다. 아래 체크박스로 자유롭게 중첩하세요.
+      </p>
+
+      <div class="layers" id="layerCards"><!-- built by JS --></div>
+
+      <div class="ui-section">연도 · 재생 (흐름 3종 시간축)</div>
+      <div class="row">
+        <label class="rl" for="yearSlider">연도</label>
+        <input type="range" id="yearSlider" min="1908" max="1921" value="1917" step="1" />
+        <span id="yearLabel">1917</span>
+      </div>
+      <div class="row">
+        <div class="btns">
+          <button type="button" class="tb" id="btnPlay">▶ 재생</button>
+          <button type="button" class="tb on" id="btnPause">⏸ 정지</button>
+          <button type="button" class="tb" id="btnResetView" title="시점 초기화">⟳ 시점</button>
+        </div>
+      </div>
+
+      <div id="legendWrap"><!-- built by JS --></div>
+      <div id="offlineNote"></div>
+      <div id="err"></div>
+    </div>
+
+    <div id="caption">
+      <b>탄소=석탄의 전 과정</b>을 하나의 공간에. 노동(유입)·생산(탄광 경영유형)·유통(수출)·철도(버퍼)를
+      독립 토글·중첩·연도 이동으로 검증하는 GIS 데모.
+      <span class="src">자료: 무순 석탄 수출/노동 유입 통계, 만주 탄광·철도 GIS. 서강대 디지털역사연구소.</span>
+    </div>
+  </div>
+
+  <div id="chartDock" class="empty">
+    <div class="chart-panel dist is-hidden" id="panelDist">
+      <h3><span class="tag">유통</span> · 선택 연도 (<span id="echoDistYear">1917</span>) 목적지별 수출 · 단위 ton</h3>
+      <div class="chart-grid">
+        <div class="chart-cell"><canvas id="distBar"></canvas></div>
+        <div class="chart-cell"><canvas id="distPie"></canvas></div>
+        <div class="chart-cell wide"><canvas id="distYears"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-panel labor is-hidden" id="panelLabor">
+      <h3><span class="tag">노동</span> · 선택 연도 (<span id="echoLaborYear">1917</span>) 출발지별 유입 · 단위 명</h3>
+      <div class="chart-grid">
+        <div class="chart-cell"><canvas id="laborBar"></canvas></div>
+        <div class="chart-cell"><canvas id="laborPie"></canvas></div>
+        <div class="chart-cell wide"><canvas id="laborYears"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-panel buffer is-hidden" id="panelBuffer">
+      <h3><span class="tag">철도망</span> · 버퍼 반경별 4개 경영유형 탄광 포함 비율 (%)</h3>
+      <div class="chart-single"><canvas id="bufferLine"></canvas></div>
+    </div>
+  </div>
+
+  <script>
+/*__MAPLIBRE_JS__*/
+  </script>
+  <script>
+/*__DECK_JS__*/
+  </script>
+  <script>
+/*__CHART_JS__*/
+  </script>
+  <script>
+  "use strict";
+  (function () {
+  // ======================================================================
+  //  EMBEDDED DATA (all inlined for offline double-click)
+  // ======================================================================
+  var GEO = JSON.parse("__COALMINE_GEOJSON_STR__");
+  var COASTLINE = JSON.parse("__COASTLINE_STR__");
+  var EMBEDDED_CSV_B64 = "__CSV_EXPORT_B64__";
+  var EMBEDDED_LABOR_CSV_B64 = "__CSV_LABOR_B64__";
+
+  function decodeCsvB64(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+  function hexToRgb(hex) {
+    var h = hex.replace("#", "");
+    if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+
+  // ======================================================================
+  //  LABELS / COLORS
+  // ======================================================================
+  var COUNTRY_LABEL = { chosun:"조선", japan:"일본", south_china:"남중국", north_china:"화북",
+    "southeast-asia":"동남아", taiwan:"대만", vladivostok:"러시아" };
+  var CITY_NAME_KO = { chosun:"서울", japan:"도쿄", south_china:"상하이", north_china:"베이징",
+    "southeast-asia":"싱가포르", taiwan:"타이베이", vladivostok:"블라디보스토크" };
+  var CITY_KO = { Qingdao:"칭다오", Jinzhou:"진저우", Lingyuan:"링위안", Chaoyang:"차오양",
+    Tianjin:"톈진", Shanhaiguan:"산해관", Shanhiguan:"산해관", Fushun:"무순", fushun:"무순" };
+
+  function regionKeyDisplay(key) {
+    var s = String(key == null ? "" : key).trim(); if (!s) return "";
+    return s.split(/[_\s-]+/).filter(Boolean).map(function (p) {
+      return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+    }).join(" ");
+  }
+  function cityKoLine(k) {
+    k = String(k || "").trim(); if (!k) return "무순";
+    var v = CITY_KO[k]; if (!v) { var k2 = k.charAt(0).toUpperCase()+k.slice(1).toLowerCase(); v = CITY_KO[k2]; }
+    return (v && String(v).trim()) ? v : "무순";
+  }
+
+  // Mine management types (from coalmine source; kept for legend consistency)
+  var MINE_TYPE_ORDER = ["official", "official_test", "commercial", "private"];
+  var MINE_TYPE_COLORS = { official:"#0000ff", official_test:"#43CBFF", commercial:"#fafad2", private:"#ffd700" };
+  var MINE_TYPE_RGB = {};
+  Object.keys(MINE_TYPE_COLORS).forEach(function (k) { MINE_TYPE_RGB[k] = hexToRgb(MINE_TYPE_COLORS[k]); });
+  var MINE_TYPE_ZH = { official:"官辦", official_test:"官辦(試)", commercial:"商辦", private:"私採" };
+  var MINE_TYPE_EN = { official:"official", official_test:"official_trial", commercial:"commercial", private:"private" };
+  function mineTypeKey(props) {
+    if (!props || props.type_admin_eng == null) return "";
+    var k = String(props.type_admin_eng).toLowerCase();
+    return k === "official_trial" ? "official_test" : k;
+  }
+
+  // Rail lines (from coalmine source)
+  var RAIL_ORDER = ["京奉鐵道", "安奉鐵道", "東清鐵道", "南滿洲鐵道"];
+  var RAIL_LINE_COLORS = { "京奉鐵道":"#ef4444", "安奉鐵道":"#eab308", "東清鐵道":"#3b82f6", "南滿洲鐵道":"#22c55e" };
+  var RAIL_KO = { "京奉鐵道":"경봉철도", "安奉鐵道":"안봉철도", "東清鐵道":"동청철도", "南滿洲鐵道":"남만주철도" };
+  function railColor(name) { return (name && RAIL_LINE_COLORS[name]) || "#a8a29e"; }
+
+  var HOT_PINK = [255, 28, 145];
+  var COLOR_WHITE = [255, 255, 255];
+  var COLOR_DARK_YELLOW = [214, 158, 0];
+
+  // ======================================================================
+  //  HEAT / GEOMETRY MATH  (reused from fushun engine)
+  // ======================================================================
+  var globalMaxPop = 1;
+  function amountWeight(amount, maxYearAmt) {
+    if (!(amount > 0) || !(maxYearAmt > 0)) return 0;
+    var la = Math.log1p(amount), lm = Math.log1p(maxYearAmt);
+    if (lm < 1e-12) return 0;
+    return Math.max(0, Math.min(1, la / lm));
+  }
+  function amountHeatRGBA(amount, maxYearAmt, alpha) {
+    var w = amountWeight(amount, maxYearAmt);
+    return [Math.round(255*(1-w)+HOT_PINK[0]*w), Math.round(255*(1-w)+HOT_PINK[1]*w),
+      Math.round(255*(1-w)+HOT_PINK[2]*w), alpha === undefined ? 245 : alpha];
+  }
+  function lerp3(a, b, u) { u = Math.max(0, Math.min(1, u));
+    return [Math.round(a[0]+(b[0]-a[0])*u), Math.round(a[1]+(b[1]-a[1])*u), Math.round(a[2]+(b[2]-a[2])*u)]; }
+  function laborHeatRGBA(pop, maxYearPop, alpha) {
+    var denom = globalMaxPop > 0 ? globalMaxPop : (maxYearPop > 0 ? maxYearPop : 1);
+    var t = !(pop > 0) ? 0 : Math.pow(Math.min(1, pop / denom), 0.48);
+    var rgb = lerp3(COLOR_WHITE, COLOR_DARK_YELLOW, t);
+    rgb.push(alpha === undefined ? 238 : alpha); return rgb;
+  }
+  function greatCirclePath(p0, p1, n) {
+    var RAD = Math.PI/180, lng1=p0[0]*RAD, lat1=p0[1]*RAD, lng2=p1[0]*RAD, lat2=p1[1]*RAD;
+    var s1=Math.sin(lat1), c1=Math.cos(lat1), s2=Math.sin(lat2), c2=Math.cos(lat2);
+    var d = Math.acos(Math.min(1, Math.max(-1, s1*s2 + c1*c2*Math.cos(lng2-lng1))));
+    if (!isFinite(d) || d < 1e-6) return [p0, p1];
+    var out = [];
+    for (var i=0;i<=n;i++){ var f=i/n; var A=Math.sin((1-f)*d)/Math.sin(d), B=Math.sin(f*d)/Math.sin(d);
+      var x=A*c1*Math.cos(lng1)+B*c2*Math.cos(lng2), y=A*c1*Math.sin(lng1)+B*c2*Math.sin(lng2), z=A*s1+B*s2;
+      out.push([Math.atan2(y,x)/RAD, Math.atan2(z, Math.sqrt(x*x+y*y))/RAD]); }
+    return out;
+  }
+  function interpolateAlongPath(path, t) {
+    t = ((t % 1) + 1) % 1; var L = path.length; if (L < 2) return path[0];
+    var max = L-1, x = t*max, i = Math.floor(x), u = x-i, a = path[i], b = path[Math.min(i+1, max)];
+    return [a[0]+(b[0]-a[0])*u, a[1]+(b[1]-a[1])*u];
+  }
+  function hash01(s) { var h=2166136261; for (var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return (h>>>0)%10000/10000; }
+
+  function flowParticleRadiusPx(d, maxYearAmt) { return 0.5 * (1.75 + amountWeight(d.amount, maxYearAmt) * 23); }
+  function exportBubbleRadiusPx(amount, maxYearAmt) { if (!(amount>0)) return 0; return 0.5 * (3 + amountWeight(amount, maxYearAmt) * 33); }
+  function radiusFactorLabor(pop, maxYearPop) { if (!(pop>0)||!(maxYearPop>0)) return 0; return Math.sqrt(Math.min(1, pop/maxYearPop)); }
+  function originBubbleRadiusPx(pop, maxYearPop) { return 0.3 + radiusFactorLabor(pop, maxYearPop) * 24.7; }
+  function flowParticleRadiusPxLabor(d, maxYearPop) { return 0.35 + radiusFactorLabor(d.pop, maxYearPop) * 25.65; }
+
+  var NUM_FLOW_PASSES = 1;
+  var FLOW_CYCLE_EXPORT_MS = 6400;
+  var FLOW_CYCLE_LABOR_MS = 5200;
+
+  // Curve rail coords (mild quadratic bezier — reused from coalmine)
+  function curveLineCoords(coords) {
+    if (!coords || coords.length < 2) return coords ? coords.slice() : coords;
+    var out = [], bulge = 0.045;
+    for (var i=0;i<coords.length-1;i++){ var a=coords[i], b=coords[i+1];
+      var dx=b[0]-a[0], dy=b[1]-a[1], dist=Math.sqrt(dx*dx+dy*dy)||1e-9;
+      var mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2, cx=mx+(-dy/dist)*dist*bulge, cy=my+(dx/dist)*dist*bulge;
+      for (var s=0;s<18;s++){ var t=s/18, omt=1-t;
+        out.push([omt*omt*a[0]+2*omt*t*cx+t*t*b[0], omt*omt*a[1]+2*omt*t*cy+t*t*b[1]]); } }
+    var last = coords[coords.length-1]; out.push([last[0], last[1]]); return out;
+  }
+  function segLen(a,b){ var dx=b[0]-a[0], dy=b[1]-a[1]; return Math.sqrt(dx*dx+dy*dy); }
+  function railLabelPoint(features) {
+    var best=null, bestLen=0;
+    features.forEach(function (f) { var cs=f.geometry&&f.geometry.coordinates; if(!cs||cs.length<2)return;
+      for (var i=0;i<cs.length-1;i++){ var L=segLen(cs[i],cs[i+1]); if(L>bestLen){bestLen=L;
+        best=[(cs[i][0]+cs[i+1][0])/2, (cs[i][1]+cs[i+1][1])/2];} } });
+    return best;
+  }
+
+  // ======================================================================
+  //  CSV PARSERS  (reused from fushun engine)
+  // ======================================================================
+  function splitCsvLine(line) {
+    var parts=[], cur="", q=false;
+    for (var j=0;j<line.length;j++){ var ch=line[j];
+      if (ch==='"'){ q=!q; continue; } if (!q && ch===","){ parts.push(cur); cur=""; continue; } cur+=ch; }
+    parts.push(cur); return parts;
+  }
+  function parseCSVExport(text) {
+    var lines = text.trim().split(/\r?\n/); if (lines.length<2) return [];
+    var header = lines[0].split(",").map(function (h){return h.trim();});
+    var rows=[];
+    for (var i=1;i<lines.length;i++){ var line=lines[i]; if(!line.trim())continue;
+      var parts=splitCsvLine(line); if(parts.length<header.length)continue;
+      var row={}; header.forEach(function(h,k){row[h]=(parts[k]||"").trim();});
+      rows.push({ source_latitude:parseFloat(row.source_latitude), source_longitude:parseFloat(row.source_longitude),
+        target_latitude:parseFloat(row.target_latitude), target_longitude:parseFloat(row.target_longitude),
+        year:parseInt(row.year,10), amount:parseFloat(row.amount), target_country:row.target_country }); }
+    return rows.filter(function(r){return isFinite(r.year)&&isFinite(r.amount);});
+  }
+  function parseCSVLabor(text) {
+    var lines = text.trim().split(/\r?\n/); if (lines.length<2) return [];
+    var header = lines[0].split(",").map(function (h){return h.trim();});
+    var rows=[];
+    for (var i=1;i<lines.length;i++){ var line=lines[i]; if(!line.trim())continue;
+      var parts=splitCsvLine(line); if(parts.length<header.length)continue;
+      var row={}; header.forEach(function(h,k){row[h]=(parts[k]||"").trim();});
+      rows.push({ id:parseInt(row.id,10), source_city:row.source_city,
+        source_latitude:parseFloat(row.source_latitude), source_longitude:parseFloat(row.source_longitude),
+        target_city:row.target_city, target_latitude:parseFloat(row.target_latitude),
+        target_longitude:parseFloat(row.target_longitude), pop:parseFloat(row.pop), year:parseInt(row.year,10) }); }
+    return rows.filter(function(r){return isFinite(r.year)&&isFinite(r.pop)&&isFinite(r.source_latitude)&&isFinite(r.target_latitude);});
+  }
+
+  // ======================================================================
+  //  STATE
+  // ======================================================================
+  var YEAR_MIN = 1908, YEAR_MAX = 1921;
+  var DEFAULT_VIEW = { center:[124.6, 38.6], zoom:3.95, pitch:24, bearing:-14 };
+  var state = {
+    layers: { production:true, distribution:true, railway:true, labor:false },
+    buffers: { 50:false, 100:false, 150:true, 200:false },
+    year: 1917, playing:false
+  };
+  // Narrative for each layer: claim (one line) + why/how (expanded)
+  var LAYER_META = {
+    labor: { name:"노동 · 유입", yr:"1916–1921 · 명", swatch:"#d69e00",
+      claim:"석탄은 노동을 빨아들였다 — 산동·화북에서 무순으로의 인구 이동.",
+      why:"주장: 탄소 레짐은 곧 노동 동원 체제였다.",
+      body:"칭다오·톈진·진저우 등지에서 무순 광업지대로 향한 연도별 유입 인구를 호(弧)와 이동 입자로 표현합니다. 유입의 급증 시점이 곧 탄광·부속 공업의 노동력 형성 국면임을 초국가적 스케일에서 드러냅니다." },
+    production: { name:"생산 · 탄광", yr:"경영유형 4종", swatch:"#0000ff",
+      claim:"관판·상판·사채 — 만주 광업의 국가·자본·민간 삼중 구조.",
+      why:"주장: 생산 단계에서 이미 에너지 레짐의 정치경제가 각인된다.",
+      body:"만주 전역 탄광 83개소를 경영유형(官辦·官辦試·商辦·私採)별 색으로 찍고, 점을 누르면 지명·성/현·개발연도·경영유형 원자료를 팝업합니다. 연도 슬라이더에 따라 그 해까지 개발된 탄광이 누적 표시됩니다." },
+    distribution: { name:"유통 · 수출", yr:"1908–1919 · ton", swatch:"#ff1c91",
+      claim:"무순 석탄은 조선·일본·화북으로 나갔다 — 초국가적 유통망.",
+      why:"주장: 무순은 동아시아 에너지 순환의 결절점이었다.",
+      body:"무순에서 조선·일본·화북·남중국·동남아·대만·연해주로 나간 연도별 석탄 수출량(ton)을 핫핑크 호로 표현합니다. 목적지 버블·이동 입자의 크기·색은 그 해 상대적 수출 비중입니다." },
+    railway: { name:"철도망 · 버퍼", yr:"1894–1911 · GIS", swatch:"#334155",
+      claim:"탄광 입지의 철도 종속성 — 공간분석으로 증명하는 디지털 역량.",
+      why:"주장: 생산의 지리는 운송 인프라에 의해 재편되었다.",
+      body:"4개 간선(경봉·안봉·동청·남만주)과 철도역, 그리고 역 기준 50/100/150/200km 버퍼를 겹쳐, 탄광이 철도망에 얼마나 근접·종속되어 분포하는지 봅니다. 아래 차트는 반경별 경영유형 탄광 포함 비율입니다." }
+  };
+  var LAYER_ORDER = ["labor", "production", "distribution", "railway"];
+
+  // ======================================================================
+  //  DOM refs
+  // ======================================================================
+  var elSlider = document.getElementById("yearSlider");
+  var elYear = document.getElementById("yearLabel");
+  var elPlay = document.getElementById("btnPlay");
+  var elPause = document.getElementById("btnPause");
+  var elResetView = document.getElementById("btnResetView");
+  var elErr = document.getElementById("err");
+  var elOfflineNote = document.getElementById("offlineNote");
+  var elLayerCards = document.getElementById("layerCards");
+  var elLegendWrap = document.getElementById("legendWrap");
+  var elChartDock = document.getElementById("chartDock");
+
+  // ======================================================================
+  //  MAP + deck overlays  (+ offline fallback style)
+  // ======================================================================
+  var CARTO_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+  function fallbackStyle() {
+    return { version:8, glyphs:null, sources:{ coast:{ type:"geojson", data:COASTLINE } },
+      layers:[
+        { id:"bg", type:"background", paint:{ "background-color":"#c3d3e0" } },
+        { id:"land", type:"fill", source:"coast", paint:{ "fill-color":"#eef2ee", "fill-outline-color":"#b7c2b7" } },
+        { id:"land-line", type:"line", source:"coast", paint:{ "line-color":"#9fb0a0", "line-width":0.8 } }
+      ] };
+  }
+  var map = new maplibregl.Map({
+    container:"map", style:CARTO_STYLE,
+    center:DEFAULT_VIEW.center, zoom:DEFAULT_VIEW.zoom, pitch:DEFAULT_VIEW.pitch, bearing:DEFAULT_VIEW.bearing,
+    attributionControl:true
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch:true }), "top-right");
+
+  var overlay = new deck.MapboxOverlay({ interleaved:false, layers:[], getTooltip:makeTooltip });
+  var labelOverlay = new deck.MapboxOverlay({ interleaved:false, layers:[] });
+  map.addControl(overlay);
+  map.addControl(labelOverlay);
+
+  var fellBack = false;
+  function goOffline(reason) {
+    if (fellBack) return; fellBack = true;
+    try { map.setStyle(fallbackStyle()); } catch (e) {}
+    nudgeDeck();
+    elOfflineNote.style.display = "block";
+    elOfflineNote.innerHTML = "<strong>오프라인 모드</strong>: 온라인 배경지도를 불러오지 못해 내장 해안선으로 대체했습니다. 데이터 레이어는 정상 작동합니다.";
+  }
+  map.on("error", function (e) {
+    var msg = e && e.error && (e.error.message || String(e.error)) || "";
+    if (!fellBack && (/style|sprite|glyph|tiles?|source|fetch|network|load/i.test(msg) || !navigator.onLine)) {
+      goOffline(msg);
+    }
+  });
+  // Safety net: if basemap never loads (offline), fall back after a timeout.
+  setTimeout(function () { if (!map.isStyleLoaded() && !fellBack) goOffline("timeout"); }, 4500);
+
+  function passThroughLabelCanvas() {
+    try { var wrap = map.getCanvasContainer(); if (!wrap) return;
+      var cs = wrap.querySelectorAll("canvas"); if (cs.length < 2) return;
+      cs[cs.length-1].style.pointerEvents = "none"; } catch (e) {}
+  }
+  // deck.gl's MapboxOverlay syncs its canvas size + viewport off the map's
+  // 'render' events. A static basemap (offline fallback, or an idle Carto map)
+  // may not fire them at the right moment, leaving deck stuck at 300x150.
+  // A short burst of resize + triggerRepaint after key moments forces the sync
+  // without pegging the render loop every frame.
+  function nudgeDeck() {
+    [0, 60, 180, 420, 900, 1600].forEach(function (ms) {
+      setTimeout(function () { try { map.resize(); map.triggerRepaint(); } catch (e) {} passThroughLabelCanvas(); }, ms);
+    });
+  }
+
+  // ======================================================================
+  //  DATA prep
+  // ======================================================================
+  var rowsExport = [], rowsLabor = [];
+  var maxAmountGlobal = 1;
+  var targetGeoPos = {};
+  var fushunPos = [123.9570231, 41.87908595];
+  var laborTotalsByYear = {}, maxLaborTotalAllYears = 1;
+  var exportTotalsByYear = {};
+
+  // production/railway static prep
+  var mineFeatures = [];        // {lng,lat,typeKey,fill,strokeW,year,props}
+  var railPaths = [];           // {path:[[lng,lat]...], color, name}
+  var railLabelData = [];       // {position,text}
+  var stationPts = [];          // {lng,lat,props}
+
+  function prepStatics() {
+    // Mines
+    var mf = (GEO.coalmine && GEO.coalmine.features) ? GEO.coalmine.features : [];
+    mineFeatures = mf.map(function (f) {
+      var p = f.properties || {}, key = mineTypeKey(p);
+      var c = f.geometry && f.geometry.coordinates || [0,0];
+      return { lng:c[0], lat:c[1], typeKey:key,
+        fill:(MINE_TYPE_RGB[key]||[168,162,158]).concat([235]),
+        strokeW:(key==="commercial"||key==="private")?2:1.2,
+        year:(p.year_dev_start!=null?parseInt(p.year_dev_start,10):null), props:p };
+    }).filter(function (m) { return isFinite(m.lng) && isFinite(m.lat); });
+
+    // Rails grouped by name -> curved paths + labels
+    var rf = (GEO.railway && GEO.railway.features) ? GEO.railway.features : [];
+    var names = [];
+    rf.forEach(function (f) { var n = f.properties && f.properties.railroad_name; if (n && names.indexOf(n)<0) names.push(n); });
+    var ordered = RAIL_ORDER.filter(function (n){return names.indexOf(n)>=0;})
+      .concat(names.filter(function(n){return RAIL_ORDER.indexOf(n)<0;}));
+    railPaths = []; railLabelData = [];
+    ordered.forEach(function (name) {
+      var subs = rf.filter(function (f){return f.properties && f.properties.railroad_name === name;});
+      var col = hexToRgb(railColor(name));
+      var curvedForLabel = [];
+      subs.forEach(function (f) {
+        var cs = f.geometry && f.geometry.coordinates;
+        if (!cs || cs.length < 2) return;
+        var curved = curveLineCoords(cs);
+        railPaths.push({ path:curved, color:col.concat([230]), name:name, props:f.properties });
+        curvedForLabel.push({ geometry:{ coordinates:curved } });
+      });
+      var lp = railLabelPoint(curvedForLabel);
+      if (lp) railLabelData.push({ position:[lp[0]+0.02, lp[1]+0.12], text:(RAIL_KO[name]||"")+"\n"+name, color:col });
+    });
+
+    // Stations
+    var sf = (GEO.stations && GEO.stations.features) ? GEO.stations.features : [];
+    stationPts = sf.map(function (f) { var c=f.geometry&&f.geometry.coordinates||[0,0];
+      return { lng:c[0], lat:c[1], props:f.properties||{} }; })
+      .filter(function (s){return isFinite(s.lng)&&isFinite(s.lat);});
+  }
+
+  function prepExport() {
+    maxAmountGlobal = rowsExport.reduce(function (m,d){return Math.max(m, d.amount||0);}, 0.001);
+    targetGeoPos = {};
+    rowsExport.forEach(function (d){ if(!targetGeoPos[d.target_country]) targetGeoPos[d.target_country]=[d.target_longitude, d.target_latitude]; });
+    exportTotalsByYear = {};
+    for (var y=YEAR_MIN;y<=YEAR_MAX;y++){ exportTotalsByYear[y] = rowsExport.reduce(function (s,d){ return d.year===y ? s+(d.amount>0?d.amount:0) : s; }, 0); }
+    rowsExport.forEach(function (d){ d._phase = hash01(d.target_country+"#"+d.year);
+      d._path = greatCirclePath([d.source_longitude,d.source_latitude],[d.target_longitude,d.target_latitude],96); });
+  }
+  function prepLabor() {
+    globalMaxPop = rowsLabor.reduce(function (m,d){return Math.max(m, d.pop||0);}, 1);
+    if (rowsLabor.length) fushunPos = [rowsLabor[0].target_longitude, rowsLabor[0].target_latitude];
+    laborTotalsByYear = {}; maxLaborTotalAllYears = 1;
+    for (var y=YEAR_MIN;y<=YEAR_MAX;y++){ var t=rowsLabor.reduce(function (s,d){ return d.year===y ? s+(d.pop>0?d.pop:0) : s; }, 0);
+      laborTotalsByYear[y]=t; maxLaborTotalAllYears=Math.max(maxLaborTotalAllYears,t); }
+    if (maxLaborTotalAllYears<1) maxLaborTotalAllYears=1;
+    rowsLabor.forEach(function (d){ d._phase = hash01(d.source_city+"#"+d.year+"#"+d.id);
+      d._path = greatCirclePath([d.source_longitude,d.source_latitude],[d.target_longitude,d.target_latitude],96); });
+  }
+
+  // ======================================================================
+  //  LAYER BUILDERS  (each returns {main:[], labels:[]})
+  // ======================================================================
+  var LABEL_FILL = [26, 28, 36, 255];
+  var LABEL_OUTLINE = [255, 252, 248, 240];
+
+  function buildDistribution(flowT) {
+    var data = rowsExport.filter(function (d){return d.year===state.year && d.amount>0;});
+    var maxYearAmt = data.reduce(function (m,d){return Math.max(m,d.amount);}, 0.001);
+    function arcCol(d){ return amountHeatRGBA(d.amount, maxYearAmt, 205); }
+
+    var arcs = new deck.ArcLayer({ id:"dist-arc", data:data, pickable:true, autoHighlight:true,
+      highlightColor:[200,40,120,230], greatCircle:true, numSegments:64,
+      parameters:{depthTest:false,depthMask:false},
+      getSourcePosition:function(d){return [d.source_longitude,d.source_latitude];},
+      getTargetPosition:function(d){return [d.target_longitude,d.target_latitude];},
+      getSourceColor:arcCol, getTargetColor:arcCol, getWidth:1, getHeight:0.34,
+      widthMinPixels:4, widthMaxPixels:4,
+      updateTriggers:{getSourceColor:[state.year],getTargetColor:[state.year]} });
+
+    var bubbles = data.map(function (d){ return { kind:"exportBubble",
+      position:[d.target_longitude,d.target_latitude], radius:exportBubbleRadiusPx(d.amount,maxYearAmt),
+      fill:amountHeatRGBA(d.amount,maxYearAmt,205), year:d.year, amount:d.amount, target_country:d.target_country }; });
+    var targetBubbles = new deck.ScatterplotLayer({ id:"dist-bubbles", data:bubbles,
+      parameters:{depthTest:false,depthMask:false}, pickable:true,
+      getPosition:function(b){return b.position;}, getRadius:function(b){return b.radius;}, radiusUnits:"pixels",
+      stroked:true, lineWidthMinPixels:1, getFillColor:function(b){return b.fill;}, getLineColor:[160,45,105,210],
+      updateTriggers:{getRadius:[state.year],getFillColor:[state.year]} });
+
+    var particles = [];
+    data.forEach(function (d){ var R=flowParticleRadiusPx(d,maxYearAmt);
+      particles.push({ parent:d, t:(flowT+d._phase)%1, rad:R }); });
+    var heads = new deck.ScatterplotLayer({ id:"dist-heads", data:particles,
+      parameters:{depthTest:false,depthMask:false}, pickable:false,
+      getPosition:function(p){return interpolateAlongPath(p.parent._path, ((p.t%1)+1)%1);},
+      getRadius:function(p){return p.rad;}, radiusUnits:"pixels", stroked:true, lineWidthMinPixels:1,
+      getFillColor:function(p){return amountHeatRGBA(p.parent.amount,maxYearAmt,252);},
+      getLineColor:[120,45,85,190] });
+
+    var textData = [];
+    Object.keys(targetGeoPos).sort().forEach(function (k){ var pos=targetGeoPos[k]; if(!pos)return;
+      textData.push({ position:[pos[0]+0.06,pos[1]-0.16],
+        text:regionKeyDisplay(k)+"\n"+(COUNTRY_LABEL[k]||k)+" · "+(CITY_NAME_KO[k]||""), size:12 }); });
+    var labels = mkTextLayer("dist-labels", textData);
+
+    return { main:[arcs, heads, targetBubbles], labels:[labels] };
+  }
+
+  function buildLabor(flowT) {
+    var raw = rowsLabor.filter(function (d){return d.year===state.year;});
+    var data = raw.filter(function (d){return d.pop>0;});
+    var maxYearPop = data.reduce(function (m,d){return Math.max(m,d.pop);}, 0.001);
+    var totalPop = raw.reduce(function (s,d){return s+(d.pop>0?d.pop:0);}, 0);
+    function arcCol(d){ return laborHeatRGBA(d.pop, maxYearPop, 210); }
+    function arcW(d){ return 1.1 + radiusFactorLabor(d.pop,maxYearPop)*4.4; }
+
+    var arcs = new deck.ArcLayer({ id:"labor-arc", data:data, pickable:true, autoHighlight:true,
+      highlightColor:[40,45,60,220], greatCircle:true, numSegments:64,
+      parameters:{depthTest:false,depthMask:false}, widthUnits:"pixels",
+      getSourcePosition:function(d){return [d.source_longitude,d.source_latitude];},
+      getTargetPosition:function(d){return [d.target_longitude,d.target_latitude];},
+      getSourceColor:arcCol, getTargetColor:arcCol, getWidth:arcW, getHeight:0.26,
+      widthMinPixels:1.5, widthMaxPixels:5,
+      updateTriggers:{getSourceColor:[state.year],getTargetColor:[state.year],getWidth:[state.year]} });
+
+    var hubR = 0;
+    if (totalPop>0 && maxLaborTotalAllYears>0) hubR = 2.2 + Math.sqrt(Math.min(1, totalPop/maxLaborTotalAllYears))*49.8;
+    else if (totalPop>0) hubR = 2.2 + Math.min(48, Math.sqrt(totalPop)*1.85);
+    var hubBubble = { kind:"laborHub", position:fushunPos, radius:hubR,
+      fill:laborHeatRGBA(Math.max(totalPop,1), Math.max(globalMaxPop,maxYearPop,1), 175), year:state.year, totalPop:totalPop };
+    var hubLayer = new deck.ScatterplotLayer({ id:"labor-hub", data:[hubBubble],
+      parameters:{depthTest:false,depthMask:false}, pickable:true,
+      getPosition:function(b){return b.position;}, getRadius:function(b){return b.radius;}, radiusUnits:"pixels",
+      stroked:true, lineWidthMinPixels:2, getFillColor:function(b){return b.fill;}, getLineColor:[120,95,35,230],
+      updateTriggers:{getRadius:[state.year],getFillColor:[state.year]} });
+
+    var originBubbles = data.map(function (d){ return { kind:"laborOrigin",
+      position:[d.source_longitude,d.source_latitude], radius:originBubbleRadiusPx(d.pop,maxYearPop),
+      fill:laborHeatRGBA(d.pop,maxYearPop,200), year:d.year, pop:d.pop, source_city:d.source_city }; });
+    var originLayer = new deck.ScatterplotLayer({ id:"labor-origins", data:originBubbles,
+      parameters:{depthTest:false,depthMask:false}, pickable:true,
+      getPosition:function(b){return b.position;}, getRadius:function(b){return b.radius;}, radiusUnits:"pixels",
+      stroked:true, lineWidthMinPixels:1, getFillColor:function(b){return b.fill;}, getLineColor:[105,88,40,218],
+      updateTriggers:{getRadius:[state.year],getFillColor:[state.year]} });
+
+    var particles = [];
+    data.forEach(function (d){ var R=flowParticleRadiusPxLabor(d,maxYearPop);
+      particles.push({ parent:d, t:(flowT+d._phase)%1, rad:R }); });
+    var heads = new deck.ScatterplotLayer({ id:"labor-heads", data:particles,
+      parameters:{depthTest:false,depthMask:false}, pickable:false,
+      getPosition:function(p){return interpolateAlongPath(p.parent._path, ((p.t%1)+1)%1);},
+      getRadius:function(p){return p.rad;}, radiusUnits:"pixels", stroked:true, lineWidthMinPixels:1,
+      getFillColor:function(p){return laborHeatRGBA(p.parent.pop,maxYearPop,245);}, getLineColor:[95,78,30,190] });
+
+    var textData = [{ position:[fushunPos[0]+0.045,fushunPos[1]-0.11], text:"Fushun\n무순", size:15 }];
+    var acc = {};
+    rowsLabor.forEach(function (d){ var k=d.source_city; if(!acc[k])acc[k]={lng:0,lat:0,n:0};
+      acc[k].lng+=d.source_longitude; acc[k].lat+=d.source_latitude; acc[k].n++; });
+    Object.keys(acc).forEach(function (k){ var a=acc[k];
+      textData.push({ position:[a.lng/a.n+0.06, a.lat/a.n-0.16], text:k+"\n"+cityKoLine(k), size:13 }); });
+    var labels = mkTextLayer("labor-labels", textData);
+
+    return { main:[arcs, heads, originLayer, hubLayer], labels:[labels] };
+  }
+
+  function buildProduction() {
+    var mines = mineFeatures.filter(function (m){ return m.year==null || m.year <= state.year; });
+    var pts = new deck.ScatterplotLayer({ id:"prod-mines", data:mines,
+      parameters:{depthTest:false,depthMask:false}, pickable:true, autoHighlight:true, highlightColor:[255,255,255,90],
+      getPosition:function(m){return [m.lng,m.lat];}, getRadius:6, radiusUnits:"pixels",
+      radiusMinPixels:3, stroked:true, getLineWidth:function(m){return m.strokeW;}, lineWidthUnits:"pixels",
+      getFillColor:function(m){return m.fill;}, getLineColor:[15,23,42,235],
+      updateTriggers:{ getPosition:[state.year] } });
+    return { main:[pts], labels:[] };
+  }
+
+  function buildRailway() {
+    var out = [];
+    // Buffers first (under lines)
+    [200,150,100,50].forEach(function (km){ if (!state.buffers[km]) return;
+      var g = GEO["buffer"+km]; if (!g || !g.features) return;
+      var alpha = 0.05 + (km/50)*0.014;
+      out.push(new deck.GeoJsonLayer({ id:"buf-"+km, data:g, pickable:true,
+        stroked:true, filled:true, parameters:{depthTest:false,depthMask:false},
+        getFillColor:[148,163,184, Math.round(Math.min(0.2,alpha)*255)],
+        getLineColor:[100,116,139,120], getLineWidth:1, lineWidthUnits:"pixels", lineWidthMinPixels:1,
+        _bufferKm:km })); });
+    // Rail lines
+    var lines = new deck.PathLayer({ id:"rail-lines", data:railPaths, pickable:true, autoHighlight:true,
+      highlightColor:[255,255,255,120], parameters:{depthTest:false,depthMask:false},
+      getPath:function(d){return d.path;}, getColor:function(d){return d.color;},
+      getWidth:2.6, widthUnits:"pixels", widthMinPixels:2, capRounded:true, jointRounded:true });
+    // Stations
+    var st = new deck.ScatterplotLayer({ id:"rail-stations", data:stationPts,
+      parameters:{depthTest:false,depthMask:false}, pickable:true,
+      getPosition:function(s){return [s.lng,s.lat];}, getRadius:4, radiusUnits:"pixels", radiusMinPixels:2.5,
+      stroked:true, lineWidthMinPixels:1, getFillColor:[254,243,199,235], getLineColor:[28,25,23,235] });
+    out.push(lines); out.push(st);
+    var labels = mkTextLayer("rail-labels", railLabelData.map(function (r){ return { position:r.position, text:r.text, size:12.5 }; }));
+    return { main:out, labels:[labels] };
+  }
+
+  function mkTextLayer(id, textData) {
+    return new deck.TextLayer({ id:id, data:textData, pickable:false,
+      getPosition:function(t){return t.position;}, getText:function(t){return t.text;},
+      getSize:function(t){return t.size;}, getColor:function(){return LABEL_FILL;},
+      getTextAnchor:"middle", getAlignmentBaseline:"center",
+      fontFamily:"Segoe UI, system-ui, sans-serif", fontWeight:"800",
+      outlineWidth:4, outlineColor:LABEL_OUTLINE, billboard:true, maxWidth:-1,
+      parameters:{depthTest:false,depthMask:false} });
+  }
+
+  // ======================================================================
+  //  TOOLTIP  (unified across all layer object kinds)
+  // ======================================================================
+  function makeTooltip(info) {
+    var o = info.object; if (!o) return null;
+    var L = info.layer && info.layer.id || "";
+    // Mine
+    if (L === "prod-mines") { var p = o.props||{};
+      var nm = p.name_mine_past || p.name_mine_current || "(무명)";
+      var t = mineTypeKey(p);
+      return { html: "<div style='max-width:240px'><strong>"+esc(nm)+"</strong>"
+        + (p.name_mine_current?("<br/><span style='color:#cbd5e1'>"+esc(p.name_mine_current)+"</span>"):"")
+        + "<br/>경영: <strong>"+(MINE_TYPE_ZH[t]||t)+"</strong> ("+(MINE_TYPE_EN[t]||t)+")"
+        + "<br/>"+esc(p.province||"")+" "+esc(p.county||"")
+        + "<br/>개발: "+esc(p.year_dev_start!=null?p.year_dev_start:"?")
+        + (p.year_dev_end!=null&&p.year_dev_end!==p.year_dev_start?("–"+esc(p.year_dev_end)):"")+"</div>" };
+    }
+    // Rail line
+    if (L === "rail-lines") { var rp = o.props||{};
+      return { html: "<div><strong>"+(RAIL_KO[o.name]||"")+" · "+esc(o.name)+"</strong><br/>"
+        + esc(rp.name_source_station_past||"")+" → "+esc(rp.name_target_station_past||"")
+        + "<br/>부설: "+esc(rp.year_dev_start||"?")+"–"+esc(rp.year_dev_end||"?")+"</div>" };
+    }
+    // Station
+    if (L === "rail-stations") { var sp = o.props||{};
+      return { html: "<div><strong>철도역</strong><br/>"+esc(sp.name_source_station_past||sp.name_station_current||"")
+        + "<br/>"+esc(sp.railroad_name||"")+"</div>" };
+    }
+    // Buffer
+    if (L && L.indexOf("buf-") === 0) { var bp = o.properties||{};
+      return { html: "<div><strong>철도역 버퍼 "+L.replace("buf-","")+"km</strong><br/>"
+        + esc(bp.railroad_name||"")+" · "+esc(bp.name_source_station_past||"")+"</div>" };
+    }
+    // Distribution
+    if (o.kind === "exportBubble") { var nm2 = COUNTRY_LABEL[o.target_country]||regionKeyDisplay(o.target_country);
+      return { html: "<div><strong>"+nm2+"</strong> · "+(CITY_NAME_KO[o.target_country]||"")+"<br/>"+o.year+"년 수출: <strong>"+o.amount+" ton</strong></div>" }; }
+    // Labor
+    if (o.kind === "laborHub") return { html:"<div><strong>무순 유입 합계</strong><br/>"+o.year+"년: <strong>"+Math.round(o.totalPop)+" 명</strong></div>" };
+    if (o.kind === "laborOrigin") { var nk=CITY_KO[o.source_city]||o.source_city;
+      return { html:"<div><strong>"+nk+"</strong> ("+o.source_city+")<br/>"+o.year+"년 유입: <strong>"+o.pop+" 명</strong></div>" }; }
+    // Arc fallback (export vs labor by field)
+    if (o.target_country !== undefined && o.amount !== undefined)
+      return { html:"<div><strong>"+(COUNTRY_LABEL[o.target_country]||regionKeyDisplay(o.target_country))+"</strong><br/>수출: "+o.amount+" ton · "+o.year+"</div>" };
+    if (o.source_city !== undefined && o.pop !== undefined)
+      return { html:"<div><strong>"+(CITY_KO[o.source_city]||o.source_city)+"</strong> → 무순<br/>유입: "+o.pop+" 명 · "+o.year+"</div>" };
+    return null;
+  }
+  function esc(s){ if(s==null)return""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  // ======================================================================
+  //  COMPOSITION + ANIMATION
+  // ======================================================================
+  var rafStarted = false;
+  function composeLayers(flowT) {
+    var main = [], labels = [];
+    // draw order: railway (bottom) -> production -> distribution -> labor (top)
+    if (state.layers.railway)      { var r=buildRailway();      main=main.concat(r.main); labels=labels.concat(r.labels); }
+    if (state.layers.production)   { var p=buildProduction();   main=main.concat(p.main); labels=labels.concat(p.labels); }
+    if (state.layers.distribution) { var d=buildDistribution(flowT); main=main.concat(d.main); labels=labels.concat(d.labels); }
+    if (state.layers.labor)        { var l=buildLabor(flowT);   main=main.concat(l.main); labels=labels.concat(l.labels); }
+    return { main:main, labels:labels };
+  }
+  // One synchronous render pass. Called directly (not via rAF) so the initial
+  // frame and every static change (layer/year/buffer toggle) paint immediately,
+  // even if requestAnimationFrame is throttled (hidden/background tab) — and so
+  // static PDF/screenshot capture always shows content.
+  function renderFrame(flowT) {
+    var L = composeLayers(flowT || 0);
+    overlay.setProps({ layers:L.main });
+    labelOverlay.setProps({ layers:L.labels });
+  }
+  function requestRender() { renderFrame(0); }
+  function tick() {
+    var cyc = state.layers.distribution ? FLOW_CYCLE_EXPORT_MS : FLOW_CYCLE_LABOR_MS;
+    renderFrame((performance.now() / cyc) % 1);
+    requestAnimationFrame(tick);
+  }
+  function startAnimLoop(){ if(rafStarted)return; rafStarted=true; requestAnimationFrame(tick); }
+
+  // ======================================================================
+  //  CHARTS
+  // ======================================================================
+  var chartDist=null, chartDistPie=null, chartDistYears=null;
+  var chartLabor=null, chartLaborPie=null, chartLaborYears=null;
+  var chartBuffer=null;
+  var echoDistYear = document.getElementById("echoDistYear");
+  var echoLaborYear = document.getElementById("echoLaborYear");
+
+  if (typeof Chart !== "undefined" && Chart.register) {
+    Chart.register({ id:"darkPlotBg", beforeDraw:function (chart) {
+      if (!chart.$darkBg) return; var ca=chart.chartArea; if(!ca||ca.width<=0)return;
+      var ctx=chart.ctx; ctx.save(); ctx.fillStyle="rgb(30,41,59)"; ctx.fillRect(ca.left,ca.top,ca.width,ca.height); ctx.restore();
+    }});
+  }
+
+  function commonOpts(extra) {
+    return Object.assign({ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }, extra||{});
+  }
+  function aggByTarget(year) {
+    var by={}; rowsExport.forEach(function (d){ if(d.year!==year)return; by[d.target_country]=(by[d.target_country]||0)+(d.amount>0?d.amount:0); });
+    var keys=Object.keys(by).sort();
+    return { keys:keys, vals:keys.map(function(k){return by[k];}),
+      labels:keys.map(function(k){return (COUNTRY_LABEL[k]||k)+" · "+(CITY_NAME_KO[k]||"");}) };
+  }
+  function aggBySource(year) {
+    var by={}; rowsLabor.forEach(function (d){ if(d.year!==year)return; by[d.source_city]=(by[d.source_city]||0)+(d.pop>0?d.pop:0); });
+    var keys=Object.keys(by).sort();
+    return { keys:keys, labels:keys.map(function(k){return CITY_KO[k]||k;}), vals:keys.map(function(k){return by[k];}) };
+  }
+
+  function initCharts() {
+    if (typeof Chart === "undefined") return;
+    // Distribution
+    chartDist = new Chart(document.getElementById("distBar"), { type:"bar",
+      data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderColor:"rgba(180,50,120,0.35)", borderWidth:1 }] },
+      options:commonOpts({ scales:{ x:{ticks:{font:{size:9},maxRotation:45}}, y:{beginAtZero:true,title:{display:true,text:"ton",color:"#6a7080",font:{size:9}},ticks:{font:{size:9}}} },
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:function(c){return " "+(c.parsed.y!==undefined?c.parsed.y:c.raw)+" ton";}}} } }) });
+    chartDistPie = new Chart(document.getElementById("distPie"), { type:"doughnut",
+      data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderColor:"#fff", borderWidth:2 }] },
+      options:commonOpts({ cutout:"52%", plugins:{ legend:{position:"right",labels:{boxWidth:9,font:{size:8.5}}},
+        tooltip:{callbacks:{label:function(c){ if(c.label==="(수출 0)")return " 수출 없음"; var s=c.dataset.data.reduce(function(a,b){return a+b;},0); return " "+c.label+": "+c.raw+" ton ("+(s?((c.raw/s)*100).toFixed(1):"0")+"%)"; }}} } }) });
+    chartDistYears = new Chart(document.getElementById("distYears"), { type:"bar",
+      data:{ labels:[], datasets:[{ data:[], backgroundColor:[] }] },
+      options:commonOpts({ scales:{ x:{ticks:{font:{size:9}}}, y:{beginAtZero:true,ticks:{font:{size:8.5}}} },
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:function(c){return " 합계 "+(c.parsed.y!==undefined?c.parsed.y:c.raw)+" ton";}}} } }) });
+    // Labor
+    chartLabor = new Chart(document.getElementById("laborBar"), { type:"bar",
+      data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderColor:"rgba(90,82,40,0.35)", borderWidth:1 }] },
+      options:commonOpts({ scales:{ x:{ticks:{font:{size:9},maxRotation:45}}, y:{beginAtZero:true,title:{display:true,text:"명",color:"#6a7080",font:{size:9}},ticks:{font:{size:9}}} },
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:function(c){return " "+(c.parsed.y!==undefined?c.parsed.y:c.raw)+" 명";}}} } }) });
+    chartLaborPie = new Chart(document.getElementById("laborPie"), { type:"doughnut",
+      data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderColor:"#fff", borderWidth:2 }] },
+      options:commonOpts({ cutout:"52%", plugins:{ legend:{position:"right",labels:{boxWidth:9,font:{size:8.5}}},
+        tooltip:{callbacks:{label:function(c){ if(c.label==="(유입 0)")return " 유입 없음"; var s=c.dataset.data.reduce(function(a,b){return a+b;},0); return " "+c.label+": "+c.raw+" 명 ("+(s?((c.raw/s)*100).toFixed(1):"0")+"%)"; }}} } }) });
+    chartLaborYears = new Chart(document.getElementById("laborYears"), { type:"bar",
+      data:{ labels:[], datasets:[{ data:[], backgroundColor:[] }] },
+      options:commonOpts({ scales:{ x:{ticks:{font:{size:9}}}, y:{beginAtZero:true,ticks:{font:{size:8.5}}} },
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:function(c){return " 합계 "+(c.parsed.y!==undefined?c.parsed.y:c.raw)+" 명";}}} } }) });
+    // Buffer static line chart (ported from coalmine)
+    var CB = { official:"#0000ff", official_trial:"#43CBFF", commercial:"#fafad2", private:"#ffd700" };
+    chartBuffer = new Chart(document.getElementById("bufferLine"), { type:"line",
+      data:{ labels:["50km 이내","100km 이내","150km 이내","200km 이내","200km 초과"],
+        datasets:[
+          { label:"official · 官辦", data:[25,25,25,42,58], borderColor:CB.official, backgroundColor:CB.official, borderWidth:2.4, pointRadius:4, pointHoverRadius:6, tension:0.3 },
+          { label:"official_trial · 官辦(試)", data:[8,33,50,50,50], borderColor:CB.official_trial, backgroundColor:CB.official_trial, borderWidth:2.4, pointRadius:4, pointHoverRadius:6, tension:0.3 },
+          { label:"commercial · 商辦", data:[14,54,82,89,11], borderColor:CB.commercial, backgroundColor:CB.commercial, borderWidth:2.4, pointRadius:4, pointHoverRadius:6, tension:0.3 },
+          { label:"private · 私採", data:[26,55,65,77,23], borderColor:CB.private, backgroundColor:CB.private, borderWidth:2.4, pointRadius:4, pointHoverRadius:6, tension:0.3 }
+        ] },
+      options:commonOpts({ interaction:{mode:"index",intersect:false},
+        plugins:{ legend:{display:true,position:"top",labels:{boxWidth:12,font:{size:9.5},color:"#334155"}},
+          tooltip:{callbacks:{label:function(c){return " "+c.dataset.label+": "+c.parsed.y+"%";}}} },
+        scales:{ x:{grid:{color:"rgba(148,163,184,0.15)"},ticks:{color:"#64748b",autoSkip:false,font:{size:10}}},
+          y:{min:0,max:100,ticks:{color:"#64748b",callback:function(v){return v+"%";},stepSize:25,font:{size:10}},grid:{color:"rgba(148,163,184,0.15)"}} } }) });
+    chartBuffer.$darkBg = true; chartBuffer.update("none");
+  }
+
+  function updateFlowCharts() {
+    if (!chartDist) return;
+    // Distribution
+    var a = aggByTarget(state.year);
+    var denom = maxAmountGlobal>0?maxAmountGlobal:1;
+    var col = a.vals.map(function (v){ var c=amountHeatRGBA(v,denom,224); return "rgba("+c[0]+","+c[1]+","+c[2]+",0.88)"; });
+    chartDist.data.labels=a.labels; chartDist.data.datasets[0].data=a.vals; chartDist.data.datasets[0].backgroundColor=col; chartDist.update("none");
+    var pl=[],pv=[],pc=[]; for(var i=0;i<a.labels.length;i++){ if(a.vals[i]>0){pl.push(a.labels[i]);pv.push(a.vals[i]);pc.push(col[i]);} }
+    if(!pv.length){pl=["(수출 0)"];pv=[1];pc=["rgba(220,220,220,0.5)"];}
+    chartDistPie.data.labels=pl; chartDistPie.data.datasets[0].data=pv; chartDistPie.data.datasets[0].backgroundColor=pc; chartDistPie.update("none");
+    var ys=[],ts=[]; for(var y=YEAR_MIN;y<=YEAR_MAX;y++){ ys.push(String(y)); ts.push(exportTotalsByYear[y]||0); }
+    chartDistYears.data.labels=ys; chartDistYears.data.datasets[0].data=ts;
+    chartDistYears.data.datasets[0].backgroundColor=ys.map(function(l){return parseInt(l,10)===state.year?"rgba(255,28,145,0.85)":"rgba(255,180,220,0.42)";});
+    chartDistYears.update("none");
+    if (echoDistYear) echoDistYear.textContent=String(state.year);
+    // Labor
+    var b = aggBySource(state.year);
+    var colL = b.vals.map(function (v){ var t=!(v>0)||globalMaxPop<=0?0:Math.pow(Math.min(1,v/globalMaxPop),0.48); var rgb=lerp3(COLOR_WHITE,COLOR_DARK_YELLOW,t); return "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",0.9)"; });
+    chartLabor.data.labels=b.labels; chartLabor.data.datasets[0].data=b.vals; chartLabor.data.datasets[0].backgroundColor=colL; chartLabor.update("none");
+    var pl2=[],pv2=[],pc2=[]; for(var j=0;j<b.labels.length;j++){ if(b.vals[j]>0){pl2.push(b.labels[j]);pv2.push(b.vals[j]);pc2.push(colL[j]);} }
+    if(!pv2.length){pl2=["(유입 0)"];pv2=[1];pc2=["rgba(220,220,220,0.5)"];}
+    chartLaborPie.data.labels=pl2; chartLaborPie.data.datasets[0].data=pv2; chartLaborPie.data.datasets[0].backgroundColor=pc2; chartLaborPie.update("none");
+    var ys2=[],ts2=[]; for(var y2=YEAR_MIN;y2<=YEAR_MAX;y2++){ ys2.push(String(y2)); ts2.push(laborTotalsByYear[y2]||0); }
+    chartLaborYears.data.labels=ys2; chartLaborYears.data.datasets[0].data=ts2;
+    chartLaborYears.data.datasets[0].backgroundColor=ys2.map(function(l){return parseInt(l,10)===state.year?"rgba(255,190,60,0.95)":"rgba(255,224,140,0.5)";});
+    chartLaborYears.update("none");
+    if (echoLaborYear) echoLaborYear.textContent=String(state.year);
+  }
+
+  function syncChartDock() {
+    var showDist = state.layers.distribution, showLabor = state.layers.labor, showBuf = state.layers.railway;
+    document.getElementById("panelDist").classList.toggle("is-hidden", !showDist);
+    document.getElementById("panelLabor").classList.toggle("is-hidden", !showLabor);
+    document.getElementById("panelBuffer").classList.toggle("is-hidden", !showBuf);
+    elChartDock.classList.toggle("empty", !(showDist||showLabor||showBuf));
+    // resize charts that just became visible
+    setTimeout(function () {
+      try { if(showDist){chartDist.resize();chartDistPie.resize();chartDistYears.resize();}
+        if(showLabor){chartLabor.resize();chartLaborPie.resize();chartLaborYears.resize();}
+        if(showBuf&&chartBuffer){chartBuffer.resize();} } catch(e){}
+    }, 30);
+  }
+
+  // ======================================================================
+  //  LEGEND (dynamic per active layer)
+  // ======================================================================
+  function renderLegend() {
+    var h = "";
+    if (state.layers.labor) {
+      h += "<div class='leg-block'><div class='leg-h'>노동 · 유입 인원(명)</div>"
+        + "<div class='amount-scale' style='background:linear-gradient(to right,#fff,#ffe682,#d69e00)'></div>"
+        + "<div class='scale-labels'><span>적음</span><span>많음(전역 최대)</span></div></div>";
+    }
+    if (state.layers.production) {
+      var items = MINE_TYPE_ORDER.map(function (k){ return "<div class='leg-item'><span class='leg-dot' style='background:"
+        + MINE_TYPE_COLORS[k] + "'></span>"+MINE_TYPE_ZH[k]+" ("+MINE_TYPE_EN[k]+")</div>"; }).join("");
+      h += "<div class='leg-block'><div class='leg-h'>생산 · 탄광 경영유형</div>"+items+"</div>";
+    }
+    if (state.layers.distribution) {
+      h += "<div class='leg-block'><div class='leg-h'>유통 · 수출량(ton)</div>"
+        + "<div class='amount-scale' style='background:linear-gradient(to right,#fff,#ff1c91)'></div>"
+        + "<div class='scale-labels'><span>적음</span><span>많음(연도 최대)</span></div></div>";
+    }
+    if (state.layers.railway) {
+      var rl = RAIL_ORDER.map(function (n){ return "<div class='leg-item'><span class='leg-line' style='border-top-color:"
+        + railColor(n) + "'></span>"+(RAIL_KO[n]||"")+" · "+n+"</div>"; }).join("");
+      h += "<div class='leg-block'><div class='leg-h'>철도망 · 간선 + 버퍼</div>"+rl
+        + "<div class='leg-item'><span class='leg-dot' style='background:#fef3c7'></span>철도역</div>"
+        + "<div class='leg-item'><span class='leg-dot' style='background:#94a3b8;border-radius:3px'></span>버퍼 폴리곤(반경 토글)</div></div>";
+    }
+    if (!h) h = "<div class='leg-item' style='color:#8a93a6'>레이어를 켜면 범례가 표시됩니다.</div>";
+    elLegendWrap.innerHTML = h;
+  }
+
+  // ======================================================================
+  //  UI: layer cards
+  // ======================================================================
+  function buildLayerCards() {
+    var html = "";
+    LAYER_ORDER.forEach(function (key) {
+      var m = LAYER_META[key], on = state.layers[key];
+      html += "<div class='layer-card"+(on?" on":"")+"' data-layer='"+key+"'>";
+      html += "<label class='layer-head'>";
+      html += "<input type='checkbox' data-cb='"+key+"'"+(on?" checked":"")+">";
+      html += "<span class='layer-swatch' style='background:"+m.swatch+"'></span>";
+      html += "<span class='layer-txt'><span class='layer-name'>"+m.name+" <span class='yr-badge'>"+m.yr+"</span></span>";
+      html += "<span class='layer-claim'>"+m.claim+"</span></span>";
+      html += "</label>";
+      if (key === "railway") {
+        html += "<div class='buffer-toggles'>";
+        [50,100,150,200].forEach(function (km){ html += "<button type='button' class='bt"+(state.buffers[km]?" on":"")+"' data-buf='"+km+"'>"+km+"km</button>"; });
+        html += "</div>";
+      }
+      html += "<div class='disclosure' data-disc='"+key+"'>▸ 이 레이어가 증명하는 것</div>";
+      html += "<div class='layer-more'><div class='layer-more-inner'><span class='why'>"+m.why+"</span><br/>"+m.body+"</div></div>";
+      html += "</div>";
+    });
+    elLayerCards.innerHTML = html;
+
+    // wire checkboxes
+    Array.prototype.forEach.call(elLayerCards.querySelectorAll("input[data-cb]"), function (cb) {
+      cb.addEventListener("change", function () {
+        var key = cb.getAttribute("data-cb");
+        state.layers[key] = cb.checked;
+        cb.closest(".layer-card").classList.toggle("on", cb.checked);
+        renderLegend(); syncChartDock(); requestRender();
+      });
+    });
+    // wire disclosures
+    Array.prototype.forEach.call(elLayerCards.querySelectorAll(".disclosure"), function (d) {
+      d.addEventListener("click", function () {
+        var card = d.closest(".layer-card");
+        var open = card.classList.toggle("expanded");
+        d.textContent = (open?"▾":"▸") + " 이 레이어가 증명하는 것";
+      });
+    });
+    // wire buffer toggles
+    Array.prototype.forEach.call(elLayerCards.querySelectorAll("button[data-buf]"), function (b) {
+      b.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        var km = parseInt(b.getAttribute("data-buf"),10);
+        state.buffers[km] = !state.buffers[km];
+        b.classList.toggle("on", state.buffers[km]);
+        requestRender();
+      });
+    });
+  }
+
+  // ======================================================================
+  //  YEAR / PLAY
+  // ======================================================================
+  function setYear(y) {
+    state.year = y; elYear.textContent = String(y);
+    updateFlowCharts(); requestRender();
+  }
+  elSlider.addEventListener("input", function () { setYear(parseInt(elSlider.value,10)); });
+  var animTimer = null;
+  function syncPlayUi(){ elPlay.classList.toggle("on", state.playing); elPause.classList.toggle("on", !state.playing); }
+  elPlay.addEventListener("click", function () {
+    if (state.playing) return; state.playing=true; syncPlayUi();
+    animTimer = setInterval(function () { var y=parseInt(elSlider.value,10); y = y>=YEAR_MAX?YEAR_MIN:y+1;
+      elSlider.value=String(y); setYear(y); }, 1300);
+  });
+  elPause.addEventListener("click", function () { state.playing=false; if(animTimer){clearInterval(animTimer);animTimer=null;} syncPlayUi(); });
+  elResetView.addEventListener("click", function () { map.easeTo({ center:DEFAULT_VIEW.center, zoom:DEFAULT_VIEW.zoom, pitch:DEFAULT_VIEW.pitch, bearing:DEFAULT_VIEW.bearing, duration:600 }); });
+
+  // ======================================================================
+  //  BOOT
+  // ======================================================================
+  var inited = false;
+  function boot() {
+    if (inited) return; inited = true;
+    try {
+      rowsExport = parseCSVExport(decodeCsvB64(EMBEDDED_CSV_B64));
+      rowsLabor = parseCSVLabor(decodeCsvB64(EMBEDDED_LABOR_CSV_B64));
+      prepExport(); prepLabor(); prepStatics();
+      buildLayerCards(); initCharts();
+      renderLegend(); syncChartDock();
+      setYear(state.year); syncPlayUi();
+      renderFrame(0);      // immediate first paint (independent of rAF)
+      startAnimLoop();
+      nudgeDeck();
+      window.addEventListener("resize", function () { try{map.resize();map.triggerRepaint();}catch(e){} passThroughLabelCanvas(); });
+    } catch (e) {
+      elErr.style.display="block"; elErr.textContent = "초기화 오류: " + (e.message||e);
+      throw e;
+    }
+  }
+  map.on("load", boot);
+  map.on("style.load", passThroughLabelCanvas);
+  setTimeout(boot, 3000); // safety: run even if basemap 'load' never fires (offline)
+  })();
+  </script>
+</body>
+</html>

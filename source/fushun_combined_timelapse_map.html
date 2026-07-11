@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>무순 타임랩스 — 석탄 수출 & 노동·인구 유입</title>
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; width: 100%; overflow: hidden; font-family: system-ui, "Segoe UI", sans-serif;
+      display: flex; flex-direction: column; }
+    #mapWrap { position: relative; flex: 1 1 0%; min-height: 0; width: 100%; }
+    #map { position: absolute; inset: 0; }
+    #ui .story-title {
+      margin: 0 0 10px;
+      font-size: clamp(0.98rem, 1.9vw, 1.28rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #12151c;
+      line-height: 1.35;
+    }
+    #ui .story-lead {
+      margin: 0 0 14px;
+      font-size: 12px;
+      line-height: 1.58;
+      color: #454b5c;
+    }
+    #storyLabor .story-lead a { color: #0b5cab; }
+    #ui .ui-section {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 650;
+      color: #3d4456;
+      letter-spacing: -0.02em;
+    }
+    #ui {
+      position: absolute; left: 12px; top: 12px; z-index: 2;
+      max-width: min(440px, calc(100vw - 24px));
+      max-height: min(72vh, calc(100% - 24px));
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: rgba(255, 255, 252, 0.96); backdrop-filter: blur(10px);
+      border: 1px solid rgba(0,0,0,0.1); border-radius: 12px;
+      padding: 14px 16px; color: #1e2130; font-size: 13px; line-height: 1.45;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+    }
+    #ui p.sub { margin: 0 0 10px; font-size: 11px; color: #5c6378; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .row label { min-width: 52px; color: #4a5066; font-size: 12px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: #ff1c91; }
+    .btns { display: flex; gap: 8px; }
+    button {
+      cursor: pointer; border: 1px solid rgba(0,0,0,0.12);
+      background: #fff; color: #2a2f3d;
+      padding: 6px 12px; border-radius: 8px; font-size: 12px;
+    }
+    button:hover { background: #fffafc; border-color: rgba(255, 28, 145, 0.35); }
+    .btns button.transport-on {
+      background: rgba(255, 28, 145, 0.22); border-color: rgba(255, 95, 185, 0.75); color: #5a0838;
+      box-shadow: 0 0 0 1px rgba(255, 28, 145, 0.15), 0 2px 10px rgba(255, 28, 145, 0.12);
+    }
+    .btns button.transport-on:hover {
+      background: rgba(255, 28, 145, 0.3); border-color: rgba(255, 95, 185, 0.9);
+    }
+    #yearLabel { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 44px; text-align: right; }
+    #legend { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08); }
+    #legend h2 { margin: 0 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6a7080; }
+    #legend h2:not(:first-child) { margin-top: 12px; }
+    .amount-scale {
+      height: 11px; border-radius: 5px; margin: 4px 0 2px;
+      background: linear-gradient(to right, rgb(255,255,255), rgb(255,28,145));
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.08) inset;
+    }
+    .scale-labels { display: flex; justify-content: space-between; font-size: 10px; color: #6a7080; margin: 0 0 8px; }
+    .leg-item { font-size: 11px; margin: 3px 0; color: #3d4456; }
+    #err { display: none; margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+      background: rgba(220, 80, 80, 0.1); border: 1px solid rgba(200, 60, 60, 0.35);
+      color: #8b1a1a; font-size: 11px; }
+    #chartDock {
+      flex: 0 1 auto; width: 100%; z-index: 3;
+      background: rgba(255, 255, 252, 0.97);
+      border-top: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+      padding: 6px 12px 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 10px;
+      max-height: 28vh;
+      min-height: 0;
+    }
+    #chartDock h3 { margin: 0; font-size: 11px; font-weight: 650; color: #4a5066; letter-spacing: 0.02em; }
+    #chartDock .chart-span { grid-column: 1 / -1; }
+    #chartDock .chart-cell { position: relative; height: min(14vh, 140px); min-height: 88px; }
+    #chartDock .chart-cell-wide { grid-column: 1 / -1; height: min(10vh, 96px); min-height: 64px; margin-top: 2px; }
+    #chartDock canvas { display: block; width: 100% !important; height: 100% !important; }
+    .is-hidden { display: none !important; }
+    .mode-switch-panel {
+      margin: 0 0 14px;
+      padding: 12px 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 247, 250, 0.96));
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    }
+    .mode-switch-label {
+      margin: 0 0 6px;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #5a6170;
+    }
+    .mode-switch-hint {
+      margin: 0 0 12px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #5c6378;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px dashed rgba(0, 0, 0, 0.1);
+    }
+    .mode-switch { display: flex; gap: 10px; flex-wrap: wrap; }
+    .mode-switch button {
+      flex: 1;
+      min-width: 130px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 12px 12px;
+      min-height: 68px;
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.25;
+      border-radius: 10px;
+      border-width: 2px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .mode-switch button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+    .mode-switch button .mode-btn-title { display: block; }
+    .mode-switch button .mode-btn-meta {
+      display: block;
+      font-size: 10px;
+      font-weight: 550;
+      opacity: 0.88;
+      letter-spacing: 0.02em;
+    }
+    body.mode-labor input[type="range"] { accent-color: #c78a00; }
+    body.mode-labor button:hover { background: #fffdf5; border-color: rgba(190, 130, 0, 0.45); }
+    body.mode-labor .mode-switch button:not(.transport-on):hover {
+      background: #fffdf5; border-color: rgba(190, 130, 0, 0.45);
+    }
+    body.mode-labor .btns button.transport-on {
+      background: linear-gradient(180deg, #fff4cc, #ffd54a);
+      border-color: rgba(180, 110, 0, 0.55); color: #3a2800;
+      box-shadow: 0 0 0 1px rgba(200, 140, 0, 0.2), 0 2px 10px rgba(200, 130, 0, 0.18);
+    }
+    body.mode-labor .btns button.transport-on:hover {
+      background: linear-gradient(180deg, #ffecb0, #ffcc33);
+      border-color: rgba(160, 95, 0, 0.65);
+    }
+    body.mode-labor #legendLabor .amount-scale {
+      background: linear-gradient(to right, rgb(255, 255, 255), rgb(255, 230, 130), rgb(214, 158, 0));
+    }
+    body.mode-labor .mode-switch button.transport-on {
+      background: rgba(255, 210, 90, 0.35);
+      border-color: rgba(180, 110, 0, 0.55);
+      color: #3a2800;
+    }
+    body.mode-export .mode-switch button.transport-on {
+      background: rgba(255, 28, 145, 0.22);
+      border-color: rgba(255, 95, 185, 0.75);
+      color: #5a0838;
+    }
+    body.mode-export .mode-switch button.transport-on:hover {
+      background: rgba(255, 28, 145, 0.3);
+      border-color: rgba(255, 95, 185, 0.9);
+    }
+  </style>
+</head>
+<body class="mode-export">
+  <div id="mapWrap">
+  <div id="map" aria-label="지도"></div>
+  <div id="ui">
+    <div class="mode-switch-panel">
+      <div class="mode-switch-label">보기 전환</div>
+      <p class="mode-switch-hint">아래 탭을 누르면 <strong>지도</strong>, <strong>범례</strong>, <strong>연도 슬라이더</strong>, <strong>아래 차트</strong>가 한 세트로 함께 바뀝니다.</p>
+      <div class="mode-switch" role="tablist" aria-label="석탄 수출 또는 노동·인구 유입 선택">
+        <button type="button" id="btnModeExport" class="transport-on" role="tab" aria-selected="true" aria-controls="storyExport">
+          <span class="mode-btn-title">석탄 수출</span>
+          <span class="mode-btn-meta">1908–1919 · 단위 ton</span>
+        </button>
+        <button type="button" id="btnModeLabor" role="tab" aria-selected="false" aria-controls="storyLabor">
+          <span class="mode-btn-title">노동·인구 유입</span>
+          <span class="mode-btn-meta">1916–1921 · 단위 명</span>
+        </button>
+      </div>
+    </div>
+    <div id="storyExport" class="story-block">
+    <h1 class="story-title">1900년대 초 무순 탄광의 석탄 수출 지도</h1>
+    <p class="story-lead">
+      무순(撫順)은 만주 남부에서 석탄이 대량 생산되던 광업 거점이었고, 일제·러·중 교차 지역이라 산출물의 향방이 정치·경제적으로도 주목받았습니다. 이 화면은 1908년부터 1919년 사이, 이곳에서 나간 석탄이 조선·일본·화북·남중국·동남아·대만·연해주(블라디보스토크) 등으로 어떻게 흘러갔는지 연도별로 비교할 수 있게 만든 것입니다. <strong>수출량은 ton(톤)</strong> 단위입니다. 분홍 호선과 점·원의 색·크기는 같은 연도 안에서 상대적인 수출 비중을 나타냅니다.
+    </p>
+    </div>
+    <div id="storyLabor" class="story-block is-hidden">
+    <h1 class="story-title">1910년대 무순 광업지대 — 노동·인구 유입 지도</h1>
+    <p class="story-lead">
+      무순(撫順) 탄광과 공업을 중심으로 한 광업 지대로 유입된 노동력·인구 이동을 <strong>1916년부터 1921년</strong>까지 연도별로 살펴본 화면입니다. <strong>유입 규모는 명(인원)</strong> 단위입니다.
+      <a href="https://www.slavevoyages.org/voyage/trans-atlantic#timelapse" target="_blank" rel="noopener">SlaveVoyages 타임랩스</a>처럼 밝은 지도 위에서 호선·이동 점으로 흐름을 보고, 색·원·호의 굵기는 유입 인원의 상대적 크기를 나타냅니다.
+    </p>
+    </div>
+    <h2 class="ui-section">연도·재생·범례</h2>
+    <div class="row">
+      <label for="yearSlider">연도</label>
+      <input type="range" id="yearSlider" min="1908" max="1919" value="1908" step="1" />
+      <span id="yearLabel">1908</span>
+    </div>
+    <div class="row">
+      <div class="btns">
+        <button type="button" id="btnPlay">재생</button>
+        <button type="button" id="btnPause">정지</button>
+      </div>
+    </div>
+    <div id="legendExport">
+      <h2>수출량 (ton) → 색 (해당 연도 기준)</h2>
+      <div class="amount-scale" aria-hidden="true"></div>
+      <div class="scale-labels"><span>적음 · 흰색</span><span>많음 · 핫핑크</span></div>
+      <p class="sub" style="margin: 0 0 8px;">수치는 모두 <strong>ton</strong>(톤)입니다. 원·호·이동 점 색·크기는 같은 연도 내 최대 수출량 대비 비율입니다(핫핑크 스케일).</p>
+      <h2>목적지</h2>
+      <div id="legendItemsExport"></div>
+    </div>
+    <div id="legendLabor" class="is-hidden">
+      <h2>유입 인원 (명) → 색(흰색~진한 노랑, 전역 최대 기준)·크기·호 두께</h2>
+      <div class="amount-scale" aria-hidden="true"></div>
+      <div class="scale-labels"><span>적음 · 흰색에 가깝게</span><span>많음 · 진한 노랑</span></div>
+      <p class="sub" style="margin:0 0 8px;">수치는 모두 <strong>명</strong>(인원)입니다. 호는 유입이 0보다 큰 구간만 표시합니다. 무순 원은 해당 연도 유입 합계(명)의 크기입니다.</p>
+      <h2>출발 도시</h2>
+      <div id="legendItemsLabor"></div>
+    </div>
+    <div id="err"></div>
+  </div>
+  </div>
+
+  <div id="chartDock" aria-label="연도별 통계">
+    <h3 class="chart-span" id="chartTitleBar">선택 연도 (<span id="chartYearEcho">1908</span>) · 목적지별 수출 · 단위 ton</h3>
+    <div class="chart-cell"><canvas id="chartBar" aria-label="막대 그래프"></canvas></div>
+    <div class="chart-cell"><canvas id="chartPie" aria-label="파이 그래프"></canvas></div>
+    <h3 class="chart-span" style="margin-top:4px;" id="chartTitleYears">1908–1919 · 연도별 총 수출 (ton)</h3>
+    <div class="chart-cell chart-cell-wide"><canvas id="chartYears" aria-label="연도별 막대"></canvas></div>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/deck.gl@8.9.36/dist.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+
+(function () {
+  var CSV_URL = "./fushun_raw_data-001-260408.csv";
+  var EMBEDDED_CSV_B64 = "77u/aWQsc291cmNlX2NvdW50cnksc291cmNlX2xhdGl0dWRlLHNvdXJjZV9sb25naXR1ZGUsdGFyZ2V0X2NvdW50cnksdGFyZ2V0X2xhdGl0dWRlLHRhcmdldF9sb25naXR1ZGUseWVhcix0aW1lLGFtb3VudCxub3RlLGxpbmVzdHJpbmcNCjEsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGNob3N1biwzNy41NjY5MzUsMTI2Ljk3ODE0MiwxOTA4LDE5MDgtMDEtMDEsMC4yLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyNi45NzgxNDIgMzcuNTY2OTM1KSINCjIsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoX2NoaW5hLDMxLjIyODY4ODc2LDEyMS40NzU4OTg4LDE5MDgsMTkwOC0wMS0wMSwxMiwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNDc1ODk4Nzc1MTE5NzIgMzEuMjI4Njg4NzYzNTM1NjMzKSINCjMsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGphcGFuLDM1LjY4NzAxMTg0LDEzOS43NTMzMjUsMTkwOCwxOTA4LTAxLTAxLDIsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTM5Ljc1MzMyNTA0NzIyODU0IDM1LjY4NzAxMTg0NDc3Mjc2KSINCjQsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLG5vcnRoX2NoaW5hLDM5LjkxNjg5MDc2LDExNi4zOTY4NzY0LDE5MDgsMTkwOC0wMS0wMSw3LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDExNi4zOTY4NzY0NDY2NDEyMiAzOS45MTY4OTA3NjIxNjQ1OSkiDQo1LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxzb3V0aGVhc3QtYXNpYSwxLjI5NzAzODgyOSwxMDMuODQ4MzA0LDE5MDgsMTkwOC0wMS0wMSwwLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEwMy44NDgzMDQwMTMzMyAxLjI5NzAzODgyODc5NDg2ODQpIg0KNixmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdGFpd2FuLDI1LjAzOTYxMDY5LDEyMS41MTkwNjA0LDE5MDgsMTkwOC0wMS0wMSwwLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyMS41MTkwNjAzOTE4NDM3MiAyNS4wMzk2MTA2ODY5ODk0MzcpIg0KNyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdmxhZGl2b3N0b2ssNDMuMTE0ODEzNDQsMTMxLjg4NTUwNTIsMTkwOCwxOTA4LTAxLTAxLDAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTMxLjg4NTUwNTIzNzYyNTM4IDQzLjExNDgxMzQzNTUwNDI1KSINCjgsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGNob3N1biwzNy41NjY5MzUsMTI2Ljk3ODE0MiwxOTA5LDE5MDktMDEtMDEsNDAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTI2Ljk3ODE0MiAzNy41NjY5MzUpIg0KOSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhfY2hpbmEsMzEuMjI4Njg4NzYsMTIxLjQ3NTg5ODgsMTkwOSwxOTA5LTAxLTAxLDg1LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyMS40NzU4OTg3NzUxMTk3MiAzMS4yMjg2ODg3NjM1MzU2MzMpIg0KMTAsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGphcGFuLDM1LjY4NzAxMTg0LDEzOS43NTMzMjUsMTkwOSwxOTA5LTAxLTAxLDMsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTM5Ljc1MzMyNTA0NzIyODU0IDM1LjY4NzAxMTg0NDc3Mjc2KSINCjExLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxub3J0aF9jaGluYSwzOS45MTY4OTA3NiwxMTYuMzk2ODc2NCwxOTA5LDE5MDktMDEtMDEsMjQsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTE2LjM5Njg3NjQ0NjY0MTIyIDM5LjkxNjg5MDc2MjE2NDU5KSINCjEyLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxzb3V0aGVhc3QtYXNpYSwxLjI5NzAzODgyOSwxMDMuODQ4MzA0LDE5MDksMTkwOS0wMS0wMSwxMiwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMDMuODQ4MzA0MDEzMzMgMS4yOTcwMzg4Mjg3OTQ4Njg0KSINCjEzLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx0YWl3YW4sMjUuMDM5NjEwNjksMTIxLjUxOTA2MDQsMTkwOSwxOTA5LTAxLTAxLDAuMSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNTE5MDYwMzkxODQzNzIgMjUuMDM5NjEwNjg2OTg5NDM3KSINCjE0LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx2bGFkaXZvc3Rvayw0My4xMTQ4MTM0NCwxMzEuODg1NTA1MiwxOTA5LDE5MDktMDEtMDEsMCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMzEuODg1NTA1MjM3NjI1MzggNDMuMTE0ODEzNDM1NTA0MjUpIg0KMTUsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGNob3N1biwzNy41NjY5MzUsMTI2Ljk3ODE0MiwxOTEwLDE5MTAtMDEtMDEsODcsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTI2Ljk3ODE0MiAzNy41NjY5MzUpIg0KMTYsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoX2NoaW5hLDMxLjIyODY4ODc2LDEyMS40NzU4OTg4LDE5MTAsMTkxMC0wMS0wMSwxNTYsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjQ3NTg5ODc3NTExOTcyIDMxLjIyODY4ODc2MzUzNTYzMykiDQoxNyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsamFwYW4sMzUuNjg3MDExODQsMTM5Ljc1MzMyNSwxOTEwLDE5MTAtMDEtMDEsOSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMzkuNzUzMzI1MDQ3MjI4NTQgMzUuNjg3MDExODQ0NzcyNzYpIg0KMTgsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLG5vcnRoX2NoaW5hLDM5LjkxNjg5MDc2LDExNi4zOTY4NzY0LDE5MTAsMTkxMC0wMS0wMSw1NywsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMTYuMzk2ODc2NDQ2NjQxMjIgMzkuOTE2ODkwNzYyMTY0NTkpIg0KMTksZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoZWFzdC1hc2lhLDEuMjk3MDM4ODI5LDEwMy44NDgzMDQsMTkxMCwxOTEwLTAxLTAxLDExLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEwMy44NDgzMDQwMTMzMyAxLjI5NzAzODgyODc5NDg2ODQpIg0KMjAsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHRhaXdhbiwyNS4wMzk2MTA2OSwxMjEuNTE5MDYwNCwxOTEwLDE5MTAtMDEtMDEsMCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNTE5MDYwMzkxODQzNzIgMjUuMDM5NjEwNjg2OTg5NDM3KSINCjIxLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx2bGFkaXZvc3Rvayw0My4xMTQ4MTM0NCwxMzEuODg1NTA1MiwxOTEwLDE5MTAtMDEtMDEsNSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMzEuODg1NTA1MjM3NjI1MzggNDMuMTE0ODEzNDM1NTA0MjUpIg0KMjIsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGNob3N1biwzNy41NjY5MzUsMTI2Ljk3ODE0MiwxOTExLDE5MTEtMDEtMDEsNSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjYuOTc4MTQyIDM3LjU2NjkzNSkiDQoyMyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhfY2hpbmEsMzEuMjI4Njg4NzYsMTIxLjQ3NTg5ODgsMTkxMSwxOTExLTAxLTAxLDExMSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNDc1ODk4Nzc1MTE5NzIgMzEuMjI4Njg4NzYzNTM1NjMzKSINCjI0LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxqYXBhbiwzNS42ODcwMTE4NCwxMzkuNzUzMzI1LDE5MTEsMTkxMS0wMS0wMSw1NSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMzkuNzUzMzI1MDQ3MjI4NTQgMzUuNjg3MDExODQ0NzcyNzYpIg0KMjUsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLG5vcnRoX2NoaW5hLDM5LjkxNjg5MDc2LDExNi4zOTY4NzY0LDE5MTEsMTkxMS0wMS0wMSwzOSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMTYuMzk2ODc2NDQ2NjQxMjIgMzkuOTE2ODkwNzYyMTY0NTkpIg0KMjYsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoZWFzdC1hc2lhLDEuMjk3MDM4ODI5LDEwMy44NDgzMDQsMTkxMSwxOTExLTAxLTAxLDksLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTAzLjg0ODMwNDAxMzMzIDEuMjk3MDM4ODI4Nzk0ODY4NCkiDQoyNyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdGFpd2FuLDI1LjAzOTYxMDY5LDEyMS41MTkwNjA0LDE5MTEsMTkxMS0wMS0wMSwxNCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNTE5MDYwMzkxODQzNzIgMjUuMDM5NjEwNjg2OTg5NDM3KSINCjI4LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx2bGFkaXZvc3Rvayw0My4xMTQ4MTM0NCwxMzEuODg1NTA1MiwxOTExLDE5MTEtMDEtMDEsMTAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTMxLjg4NTUwNTIzNzYyNTM4IDQzLjExNDgxMzQzNTUwNDI1KSINCjI5LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxjaG9zdW4sMzcuNTY2OTM1LDEyNi45NzgxNDIsMTkxMiwxOTEyLTAxLTAxLDE0MSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjYuOTc4MTQyIDM3LjU2NjkzNSkiDQozMCxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhfY2hpbmEsMzEuMjI4Njg4NzYsMTIxLjQ3NTg5ODgsMTkxMiwxOTEyLTAxLTAxLDIxMSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNDc1ODk4Nzc1MTE5NzIgMzEuMjI4Njg4NzYzNTM1NjMzKSINCjMxLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxqYXBhbiwzNS42ODcwMTE4NCwxMzkuNzUzMzI1LDE5MTIsMTkxMi0wMS0wMSwxMTIsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTM5Ljc1MzMyNTA0NzIyODU0IDM1LjY4NzAxMTg0NDc3Mjc2KSINCjMyLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxub3J0aF9jaGluYSwzOS45MTY4OTA3NiwxMTYuMzk2ODc2NCwxOTEyLDE5MTItMDEtMDEsNTUsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTE2LjM5Njg3NjQ0NjY0MTIyIDM5LjkxNjg5MDc2MjE2NDU5KSINCjMzLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxzb3V0aGVhc3QtYXNpYSwxLjI5NzAzODgyOSwxMDMuODQ4MzA0LDE5MTIsMTkxMi0wMS0wMSwyNSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMDMuODQ4MzA0MDEzMzMgMS4yOTcwMzg4Mjg3OTQ4Njg0KSINCjM0LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx0YWl3YW4sMjUuMDM5NjEwNjksMTIxLjUxOTA2MDQsMTkxMiwxOTEyLTAxLTAxLDE3LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyMS41MTkwNjAzOTE4NDM3MiAyNS4wMzk2MTA2ODY5ODk0MzcpIg0KMzUsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHZsYWRpdm9zdG9rLDQzLjExNDgxMzQ0LDEzMS44ODU1MDUyLDE5MTIsMTkxMi0wMS0wMSw4LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzMS44ODU1MDUyMzc2MjUzOCA0My4xMTQ4MTM0MzU1MDQyNSkiDQozNixmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsY2hvc3VuLDM3LjU2NjkzNSwxMjYuOTc4MTQyLDE5MTMsMTkxMy0wMS0wMSwyMzQsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTI2Ljk3ODE0MiAzNy41NjY5MzUpIg0KMzcsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoX2NoaW5hLDMxLjIyODY4ODc2LDEyMS40NzU4OTg4LDE5MTMsMTkxMy0wMS0wMSwyNzUsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjQ3NTg5ODc3NTExOTcyIDMxLjIyODY4ODc2MzUzNTYzMykiDQozOCxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsamFwYW4sMzUuNjg3MDExODQsMTM5Ljc1MzMyNSwxOTEzLDE5MTMtMDEtMDEsMjg2LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzOS43NTMzMjUwNDcyMjg1NCAzNS42ODcwMTE4NDQ3NzI3NikiDQozOSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsbm9ydGhfY2hpbmEsMzkuOTE2ODkwNzYsMTE2LjM5Njg3NjQsMTkxMywxOTEzLTAxLTAxLDc4LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDExNi4zOTY4NzY0NDY2NDEyMiAzOS45MTY4OTA3NjIxNjQ1OSkiDQo0MCxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhlYXN0LWFzaWEsMS4yOTcwMzg4MjksMTAzLjg0ODMwNCwxOTEzLDE5MTMtMDEtMDEsMjAxLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEwMy44NDgzMDQwMTMzMyAxLjI5NzAzODgyODc5NDg2ODQpIg0KNDEsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHRhaXdhbiwyNS4wMzk2MTA2OSwxMjEuNTE5MDYwNCwxOTEzLDE5MTMtMDEtMDEsNDgsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjUxOTA2MDM5MTg0MzcyIDI1LjAzOTYxMDY4Njk4OTQzNykiDQo0MixmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdmxhZGl2b3N0b2ssNDMuMTE0ODEzNDQsMTMxLjg4NTUwNTIsMTkxMywxOTEzLTAxLTAxLDEwLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzMS44ODU1MDUyMzc2MjUzOCA0My4xMTQ4MTM0MzU1MDQyNSkiDQo0MyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsY2hvc3VuLDM3LjU2NjkzNSwxMjYuOTc4MTQyLDE5MTQsMTkxNC0wMS0wMSwyMTAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTI2Ljk3ODE0MiAzNy41NjY5MzUpIg0KNDQsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoX2NoaW5hLDMxLjIyODY4ODc2LDEyMS40NzU4OTg4LDE5MTQsMTkxNC0wMS0wMSwxNTQsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjQ3NTg5ODc3NTExOTcyIDMxLjIyODY4ODc2MzUzNTYzMykiDQo0NSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsamFwYW4sMzUuNjg3MDExODQsMTM5Ljc1MzMyNSwxOTE0LDE5MTQtMDEtMDEsMzYxLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzOS43NTMzMjUwNDcyMjg1NCAzNS42ODcwMTE4NDQ3NzI3NikiDQo0NixmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsbm9ydGhfY2hpbmEsMzkuOTE2ODkwNzYsMTE2LjM5Njg3NjQsMTkxNCwxOTE0LTAxLTAxLDY5LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDExNi4zOTY4NzY0NDY2NDEyMiAzOS45MTY4OTA3NjIxNjQ1OSkiDQo0NyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhlYXN0LWFzaWEsMS4yOTcwMzg4MjksMTAzLjg0ODMwNCwxOTE0LDE5MTQtMDEtMDEsMTc2LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEwMy44NDgzMDQwMTMzMyAxLjI5NzAzODgyODc5NDg2ODQpIg0KNDgsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHRhaXdhbiwyNS4wMzk2MTA2OSwxMjEuNTE5MDYwNCwxOTE0LDE5MTQtMDEtMDEsMzAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjUxOTA2MDM5MTg0MzcyIDI1LjAzOTYxMDY4Njk4OTQzNykiDQo0OSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdmxhZGl2b3N0b2ssNDMuMTE0ODEzNDQsMTMxLjg4NTUwNTIsMTkxNCwxOTE0LTAxLTAxLDQsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTMxLjg4NTUwNTIzNzYyNTM4IDQzLjExNDgxMzQzNTUwNDI1KSINCjUwLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxjaG9zdW4sMzcuNTY2OTM1LDEyNi45NzgxNDIsMTkxNSwxOTE1LTAxLTAxLDI1MywsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjYuOTc4MTQyIDM3LjU2NjkzNSkiDQo1MSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhfY2hpbmEsMzEuMjI4Njg4NzYsMTIxLjQ3NTg5ODgsMTkxNSwxOTE1LTAxLTAxLDE4NiwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNDc1ODk4Nzc1MTE5NzIgMzEuMjI4Njg4NzYzNTM1NjMzKSINCjUyLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxqYXBhbiwzNS42ODcwMTE4NCwxMzkuNzUzMzI1LDE5MTUsMTkxNS0wMS0wMSwxMjIsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTM5Ljc1MzMyNTA0NzIyODU0IDM1LjY4NzAxMTg0NDc3Mjc2KSINCjUzLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxub3J0aF9jaGluYSwzOS45MTY4OTA3NiwxMTYuMzk2ODc2NCwxOTE1LDE5MTUtMDEtMDEsNjYsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTE2LjM5Njg3NjQ0NjY0MTIyIDM5LjkxNjg5MDc2MjE2NDU5KSINCjU0LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxzb3V0aGVhc3QtYXNpYSwxLjI5NzAzODgyOSwxMDMuODQ4MzA0LDE5MTUsMTkxNS0wMS0wMSw4MCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMDMuODQ4MzA0MDEzMzMgMS4yOTcwMzg4Mjg3OTQ4Njg0KSINCjU1LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx0YWl3YW4sMjUuMDM5NjEwNjksMTIxLjUxOTA2MDQsMTkxNSwxOTE1LTAxLTAxLDMzLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyMS41MTkwNjAzOTE4NDM3MiAyNS4wMzk2MTA2ODY5ODk0MzcpIg0KNTYsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHZsYWRpdm9zdG9rLDQzLjExNDgxMzQ0LDEzMS44ODU1MDUyLDE5MTUsMTkxNS0wMS0wMSwzLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzMS44ODU1MDUyMzc2MjUzOCA0My4xMTQ4MTM0MzU1MDQyNSkiDQo1NyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsY2hvc3VuLDM3LjU2NjkzNSwxMjYuOTc4MTQyLDE5MTYsMTkxNi0wMS0wMSwyOTksLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTI2Ljk3ODE0MiAzNy41NjY5MzUpIg0KNTgsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoX2NoaW5hLDMxLjIyODY4ODc2LDEyMS40NzU4OTg4LDE5MTYsMTkxNi0wMS0wMSwyMDUsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjQ3NTg5ODc3NTExOTcyIDMxLjIyODY4ODc2MzUzNTYzMykiDQo1OSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsamFwYW4sMzUuNjg3MDExODQsMTM5Ljc1MzMyNSwxOTE2LDE5MTYtMDEtMDEsMTgwLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzOS43NTMzMjUwNDcyMjg1NCAzNS42ODcwMTE4NDQ3NzI3NikiDQo2MCxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsbm9ydGhfY2hpbmEsMzkuOTE2ODkwNzYsMTE2LjM5Njg3NjQsMTkxNiwxOTE2LTAxLTAxLDkyLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDExNi4zOTY4NzY0NDY2NDEyMiAzOS45MTY4OTA3NjIxNjQ1OSkiDQo2MSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhlYXN0LWFzaWEsMS4yOTcwMzg4MjksMTAzLjg0ODMwNCwxOTE2LDE5MTYtMDEtMDEsMTQxLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEwMy44NDgzMDQwMTMzMyAxLjI5NzAzODgyODc5NDg2ODQpIg0KNjIsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHRhaXdhbiwyNS4wMzk2MTA2OSwxMjEuNTE5MDYwNCwxOTE2LDE5MTYtMDEtMDEsMjMsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjUxOTA2MDM5MTg0MzcyIDI1LjAzOTYxMDY4Njk4OTQzNykiDQo2MyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdmxhZGl2b3N0b2ssNDMuMTE0ODEzNDQsMTMxLjg4NTUwNTIsMTkxNiwxOTE2LTAxLTAxLDAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTMxLjg4NTUwNTIzNzYyNTM4IDQzLjExNDgxMzQzNTUwNDI1KSINCjY0LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxjaG9zdW4sMzcuNTY2OTM1LDEyNi45NzgxNDIsMTkxNywxOTE3LTAxLTAxLDM2MiwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjYuOTc4MTQyIDM3LjU2NjkzNSkiDQo2NSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhfY2hpbmEsMzEuMjI4Njg4NzYsMTIxLjQ3NTg5ODgsMTkxNywxOTE3LTAxLTAxLDE0MywsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNDc1ODk4Nzc1MTE5NzIgMzEuMjI4Njg4NzYzNTM1NjMzKSINCjY2LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxqYXBhbiwzNS42ODcwMTE4NCwxMzkuNzUzMzI1LDE5MTcsMTkxNy0wMS0wMSwxNDksLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTM5Ljc1MzMyNTA0NzIyODU0IDM1LjY4NzAxMTg0NDc3Mjc2KSINCjY3LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxub3J0aF9jaGluYSwzOS45MTY4OTA3NiwxMTYuMzk2ODc2NCwxOTE3LDE5MTctMDEtMDEsODQsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTE2LjM5Njg3NjQ0NjY0MTIyIDM5LjkxNjg5MDc2MjE2NDU5KSINCjY4LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxzb3V0aGVhc3QtYXNpYSwxLjI5NzAzODgyOSwxMDMuODQ4MzA0LDE5MTcsMTkxNy0wMS0wMSw3MywsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMDMuODQ4MzA0MDEzMzMgMS4yOTcwMzg4Mjg3OTQ4Njg0KSINCjY5LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx0YWl3YW4sMjUuMDM5NjEwNjksMTIxLjUxOTA2MDQsMTkxNywxOTE3LTAxLTAxLDAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjUxOTA2MDM5MTg0MzcyIDI1LjAzOTYxMDY4Njk4OTQzNykiDQo3MCxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdmxhZGl2b3N0b2ssNDMuMTE0ODEzNDQsMTMxLjg4NTUwNTIsMTkxNywxOTE3LTAxLTAxLDAsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTMxLjg4NTUwNTIzNzYyNTM4IDQzLjExNDgxMzQzNTUwNDI1KSINCjcxLGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2MyxjaG9zdW4sMzcuNTY2OTM1LDEyNi45NzgxNDIsMTkxOCwxOTE4LTAxLTAxLDQ1OCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjYuOTc4MTQyIDM3LjU2NjkzNSkiDQo3MixmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhfY2hpbmEsMzEuMjI4Njg4NzYsMTIxLjQ3NTg5ODgsMTkxOCwxOTE4LTAxLTAxLDc0LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyMS40NzU4OTg3NzUxMTk3MiAzMS4yMjg2ODg3NjM1MzU2MzMpIg0KNzMsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGphcGFuLDM1LjY4NzAxMTg0LDEzOS43NTMzMjUsMTkxOCwxOTE4LTAxLTAxLDE1OSwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMzkuNzUzMzI1MDQ3MjI4NTQgMzUuNjg3MDExODQ0NzcyNzYpIg0KNzQsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLG5vcnRoX2NoaW5hLDM5LjkxNjg5MDc2LDExNi4zOTY4NzY0LDE5MTgsMTkxOC0wMS0wMSw1NCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMTYuMzk2ODc2NDQ2NjQxMjIgMzkuOTE2ODkwNzYyMTY0NTkpIg0KNzUsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHNvdXRoZWFzdC1hc2lhLDEuMjk3MDM4ODI5LDEwMy44NDgzMDQsMTkxOCwxOTE4LTAxLTAxLDU4LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEwMy44NDgzMDQwMTMzMyAxLjI5NzAzODgyODc5NDg2ODQpIg0KNzYsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHRhaXdhbiwyNS4wMzk2MTA2OSwxMjEuNTE5MDYwNCwxOTE4LDE5MTgtMDEtMDEsMCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMjEuNTE5MDYwMzkxODQzNzIgMjUuMDM5NjEwNjg2OTg5NDM3KSINCjc3LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myx2bGFkaXZvc3Rvayw0My4xMTQ4MTM0NCwxMzEuODg1NTA1MiwxOTE4LDE5MTgtMDEtMDEsMCwsImxpbmVzdHJpbmcoMTIzLjk1NjMzNjMwMDUyNTI0IDQxLjg4MDQ5MTg2NDA5NjczLCAxMzEuODg1NTA1MjM3NjI1MzggNDMuMTE0ODEzNDM1NTA0MjUpIg0KNzgsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLGNob3N1biwzNy41NjY5MzUsMTI2Ljk3ODE0MiwxOTE5LDE5MTktMDEtMDEsNTIyLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyNi45NzgxNDIgMzcuNTY2OTM1KSINCjc5LGZ1c2h1biw0MS44ODA0OTE4NiwxMjMuOTU2MzM2Myxzb3V0aF9jaGluYSwzMS4yMjg2ODg3NiwxMjEuNDc1ODk4OCwxOTE5LDE5MTktMDEtMDEsNTcsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTIxLjQ3NTg5ODc3NTExOTcyIDMxLjIyODY4ODc2MzUzNTYzMykiDQo4MCxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsamFwYW4sMzUuNjg3MDExODQsMTM5Ljc1MzMyNSwxOTE5LDE5MTktMDEtMDEsMTE0LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzOS43NTMzMjUwNDcyMjg1NCAzNS42ODcwMTE4NDQ3NzI3NikiDQo4MSxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsbm9ydGhfY2hpbmEsMzkuOTE2ODkwNzYsMTE2LjM5Njg3NjQsMTkxOSwxOTE5LTAxLTAxLDI1LCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDExNi4zOTY4NzY0NDY2NDEyMiAzOS45MTY4OTA3NjIxNjQ1OSkiDQo4MixmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsc291dGhlYXN0LWFzaWEsMS4yOTcwMzg4MjksMTAzLjg0ODMwNCwxOTE5LDE5MTktMDEtMDEsNTIsLCJsaW5lc3RyaW5nKDEyMy45NTYzMzYzMDA1MjUyNCA0MS44ODA0OTE4NjQwOTY3MywgMTAzLjg0ODMwNDAxMzMzIDEuMjk3MDM4ODI4Nzk0ODY4NCkiDQo4MyxmdXNodW4sNDEuODgwNDkxODYsMTIzLjk1NjMzNjMsdGFpd2FuLDI1LjAzOTYxMDY5LDEyMS41MTkwNjA0LDE5MTksMTkxOS0wMS0wMSwwLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEyMS41MTkwNjAzOTE4NDM3MiAyNS4wMzk2MTA2ODY5ODk0MzcpIg0KODQsZnVzaHVuLDQxLjg4MDQ5MTg2LDEyMy45NTYzMzYzLHZsYWRpdm9zdG9rLDQzLjExNDgxMzQ0LDEzMS44ODU1MDUyLDE5MTksMTkxOS0wMS0wMSwwLCwibGluZXN0cmluZygxMjMuOTU2MzM2MzAwNTI1MjQgNDEuODgwNDkxODY0MDk2NzMsIDEzMS44ODU1MDUyMzc2MjUzOCA0My4xMTQ4MTM0MzU1MDQyNSkiDQo=";
+
+  var CSV_LABOR_URL = "./fushun_labor-001-260413.csv";
+  var EMBEDDED_LABOR_CSV_B64 = "77u/aWQsc291cmNlX2NpdHksc291cmNlX2xhdGl0dWRlLHNvdXJjZV9sb25naXR1ZGUsdGFyZ2V0X2NpdHksdGFyZ2V0X2xhdGl0dWRlLHRhcmdldF9sb25naXR1ZGUscG9wLHllYXINCjEsUWluZ2RhbywzNi4wNjcwOCwxMjAuMzgyNjQsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDI1NjIsMTkxNg0KMixRaW5nZGFvLDM2LjA2NzA4LDEyMC4zODI2NCxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsNzY5NiwxOTE3DQozLFFpbmdkYW8sMzYuMDY3MDgsMTIwLjM4MjY0LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCw4NzE3LDE5MTgNCjQsUWluZ2RhbywzNi4wNjcwOCwxMjAuMzgyNjQsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDEwMzA5LDE5MTkNCjUsUWluZ2RhbywzNi4wNjcwOCwxMjAuMzgyNjQsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDc3MjUsMTkyMA0KNixRaW5nZGFvLDM2LjA2NzA4LDEyMC4zODI2NCxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMjA2NiwxOTIxDQo3LEppbnpob3UsNDEuMTI3MzksMTIxLjE0Nzc1LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCwwLDE5MTYNCjgsSmluemhvdSw0MS4xMjczOSwxMjEuMTQ3NzUsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDIzMzE3LDE5MTcNCjksSmluemhvdSw0MS4xMjczOSwxMjEuMTQ3NzUsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDI4NzEsMTkxOA0KMTAsSmluemhvdSw0MS4xMjczOSwxMjEuMTQ3NzUsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDMyMjAsMTkxOQ0KMTEsSmluemhvdSw0MS4xMjczOSwxMjEuMTQ3NzUsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDExNzYsMTkyMA0KMTIsSmluemhvdSw0MS4xMjczOSwxMjEuMTQ3NzUsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDAsMTkyMQ0KMTMsTGluZ3l1YW4sNDEuMjQ0MTUsMTE5LjQwMTk0LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCwwLDE5MTYNCjE0LExpbmd5dWFuLDQxLjI0NDE1LDExOS40MDE5NCxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMTE0NywxOTE3DQoxNSxMaW5neXVhbiw0MS4yNDQxNSwxMTkuNDAxOTQsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDE0ODcsMTkxOA0KMTYsTGluZ3l1YW4sNDEuMjQ0MTUsMTE5LjQwMTk0LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCw0NTYwLDE5MTkNCjE3LExpbmd5dWFuLDQxLjI0NDE1LDExOS40MDE5NCxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMjI3OSwxOTIwDQoxOCxMaW5neXVhbiw0MS4yNDQxNSwxMTkuNDAxOTQsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDIyMywxOTIxDQoxOSxDaGFveWFuZyw0MS41NzY3NiwxMjAuNDUxMTgsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDAsMTkxNg0KMjAsQ2hhb3lhbmcsNDEuNTc2NzYsMTIwLjQ1MTE4LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCwxMjgzLDE5MTcNCjIxLENoYW95YW5nLDQxLjU3Njc2LDEyMC40NTExOCxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsODIzLDE5MTgNCjIyLENoYW95YW5nLDQxLjU3Njc2LDEyMC40NTExOCxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMTQ5NSwxOTE5DQoyMyxDaGFveWFuZyw0MS41NzY3NiwxMjAuNDUxMTgsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDIwMDcsMTkyMA0KMjQsQ2hhb3lhbmcsNDEuNTc2NzYsMTIwLjQ1MTE4LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCw1MjEsMTkyMQ0KMjUsVGlhbmppbiwzOS4xMzMyNCwxMTcuMjA1NSxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMCwxOTE2DQoyNixUaWFuamluLDM5LjEzMzI0LDExNy4yMDU1LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCwwLDE5MTcNCjI3LFRpYW5qaW4sMzkuMTMzMjQsMTE3LjIwNTUsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDAsMTkxOA0KMjgsVGlhbmppbiwzOS4xMzMyNCwxMTcuMjA1NSxGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMzc5MiwxOTE5DQoyOSxUaWFuamluLDM5LjEzMzI0LDExNy4yMDU1LEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCwxNjk4LDE5MjANCjMwLFRpYW5qaW4sMzkuMTMzMjQsMTE3LjIwNTUsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDY3LDE5MjENCjMxLFNoYW5oYWlndWFuLDQwLjAwOTI1LDExOS43NzUzMixGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMCwxOTE2DQozMixTaGFuaGFpZ3Vhbiw0MC4wMDkyNSwxMTkuNzc1MzIsRnVzaHVuLDQxLjg3OTcsMTIzLjk1NzI4LDAsMTkxNw0KMzMsU2hhbmhhaWd1YW4sNDAuMDA5MjUsMTE5Ljc3NTMyLEZ1c2h1biw0MS44Nzk3LDEyMy45NTcyOCwwLDE5MTgNCjM0LFNoYW5oYWlndWFuLDQwLjAwOTI1LDExOS43NzUzMixGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsNDM5LDE5MTkNCjM1LFNoYW5oYWlndWFuLDQwLjAwOTI1LDExOS43NzUzMixGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMjYzLDE5MjANCjM2LFNoYW5oYWlndWFuLDQwLjAwOTI1LDExOS43NzUzMixGdXNodW4sNDEuODc5NywxMjMuOTU3MjgsMCwxOTIxDQo=";
+
+  function decodeCsvB64(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+
+  var COUNTRY_LABEL = {
+    chosun: "조선", japan: "일본", south_china: "남중국", north_china: "화북",
+    "southeast-asia": "동남아", taiwan: "대만", vladivostok: "러시아"
+  };
+  /** 지도 라벨용 도시명 (target 좌표 기준) */
+  var CITY_NAME_KO = {
+    chosun: "서울", japan: "도쿄", south_china: "상하이", north_china: "베이징",
+    "southeast-asia": "싱가포르", taiwan: "타이베이", vladivostok: "블라디보스토크"
+  };
+  /** 영문 지역 키 표시: 언더스코어·하이픈을 띄어쓰기로, 각 단어 첫 글자 대문자 (예: north_china → North China) */
+  function regionKeyDisplay(key) {
+    var s = String(key == null ? "" : key).trim();
+    if (!s) return "";
+    var parts = s.split(/[_\s-]+/);
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (!p) continue;
+      out.push(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase());
+    }
+    return out.join(" ");
+  }
+  /** 출발지 영문 → 한글 (노동 데이터) */
+  var CITY_KO = {
+    Qingdao: "칭다오", Jinzhou: "진저우", Lingyuan: "링위안", Chaoyang: "차오양",
+    Tianjin: "톈진", Shanhaiguan: "산해관", Shanhiguan: "산해관",
+    Fushun: "\uBB34\uC21C", fushun: "\uBB34\uC21C"
+  };
+  var HUB_KO_FALLBACK = "\uBB34\uC21C";
+  function cityKoLine(englishKey) {
+    var k = String(englishKey || "").trim();
+    if (!k) return HUB_KO_FALLBACK;
+    var v = CITY_KO[k];
+    if (!v) {
+      var k2 = k.charAt(0).toUpperCase() + k.slice(1).toLowerCase();
+      v = CITY_KO[k2];
+    }
+    v = v && String(v).trim() ? v : HUB_KO_FALLBACK;
+    return v;
+  }
+  /** 수출 적음 → 흰색, 많음 → 핫핑크 (같은 연도 내 max 대비 log1p 비율) */
+  var HOT_PINK = [255, 28, 145];
+  function amountHeatRGBA(amount, maxYearAmt, alpha) {
+    var w = amountWeight(amount, maxYearAmt);
+    var r = Math.round(255 * (1 - w) + HOT_PINK[0] * w);
+    var g = Math.round(255 * (1 - w) + HOT_PINK[1] * w);
+    var b = Math.round(255 * (1 - w) + HOT_PINK[2] * w);
+    var a = alpha === undefined ? 245 : alpha;
+    return [r, g, b, a];
+  }
+  var COLOR_WHITE = [255, 255, 255];
+  var COLOR_DARK_YELLOW = [214, 158, 0];
+  function lerp3(a, b, u) {
+    u = Math.max(0, Math.min(1, u));
+    return [
+      Math.round(a[0] + (b[0] - a[0]) * u),
+      Math.round(a[1] + (b[1] - a[1]) * u),
+      Math.round(a[2] + (b[2] - a[2]) * u)
+    ];
+  }
+  function laborHeatRGBA(pop, maxYearPop, alpha) {
+    var denom = globalMaxPop > 0 ? globalMaxPop : (maxYearPop > 0 ? maxYearPop : 1);
+    var t = !(pop > 0) ? 0 : Math.pow(Math.min(1, pop / denom), 0.48);
+    var rgb = lerp3(COLOR_WHITE, COLOR_DARK_YELLOW, t);
+    rgb.push(alpha === undefined ? 238 : alpha);
+    return rgb;
+  }
+
+  function greatCirclePath(p0, p1, n) {
+    var RAD = Math.PI / 180;
+    var lng1 = p0[0] * RAD;
+    var lat1 = p0[1] * RAD;
+    var lng2 = p1[0] * RAD;
+    var lat2 = p1[1] * RAD;
+    var s1 = Math.sin(lat1);
+    var c1 = Math.cos(lat1);
+    var s2 = Math.sin(lat2);
+    var c2 = Math.cos(lat2);
+    var d = Math.acos(Math.min(1, Math.max(-1, s1 * s2 + c1 * c2 * Math.cos(lng2 - lng1))));
+    if (!isFinite(d) || d < 1e-6) return [p0, p1];
+    var out = [];
+    for (var i = 0; i <= n; i++) {
+      var f = i / n;
+      var A = Math.sin((1 - f) * d) / Math.sin(d);
+      var B = Math.sin(f * d) / Math.sin(d);
+      var x = A * c1 * Math.cos(lng1) + B * c2 * Math.cos(lng2);
+      var y = A * c1 * Math.sin(lng1) + B * c2 * Math.sin(lng2);
+      var z = A * s1 + B * s2;
+      var lat = Math.atan2(z, Math.sqrt(x * x + y * y));
+      var lng = Math.atan2(y, x);
+      out.push([lng / RAD, lat / RAD]);
+    }
+    return out;
+  }
+
+  function interpolateAlongPath(path, t) {
+    t = ((t % 1) + 1) % 1;
+    var L = path.length;
+    if (L < 2) return path[0];
+    var max = L - 1;
+    var x = t * max;
+    var i = Math.floor(x);
+    var u = x - i;
+    var a = path[i];
+    var b = path[Math.min(i + 1, max)];
+    return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+  }
+
+  function hash01(s) {
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0) % 10000 / 10000;
+  }
+
+  /**
+   * amount를 max 대비 0~1로 (선형 비율이 너무 눌리지 않도록 log1p).
+   * 예: max가 크고 0.1 vs 3처럼 작은 값도 단계가 갈립니다.
+   */
+  function amountWeight(amount, maxYearAmt) {
+    if (!(amount > 0) || !(maxYearAmt > 0)) return 0;
+    var la = Math.log1p(amount);
+    var lm = Math.log1p(maxYearAmt);
+    if (lm < 1e-12) return 0;
+    return Math.max(0, Math.min(1, la / lm));
+  }
+
+  /** 이동 원 (픽셀): 같은 행은 동일 반경 (기본 대비 1/2) */
+  function flowParticleRadiusPx(d, maxYearAmt) {
+    var w = amountWeight(d.amount, maxYearAmt);
+    return 0.5 * (1.75 + w * 23);
+  }
+
+  /** 목적지 수출 버블 (픽셀, 기본 대비 1/2) */
+  function exportBubbleRadiusPx(amount, maxYearAmt) {
+    if (!(amount > 0)) return 0;
+    var w = amountWeight(amount, maxYearAmt);
+    return 0.5 * (3 + w * 33);
+  }
+
+  function radiusFactorLabor(pop, maxYearPop) {
+    if (!(pop > 0) || !(maxYearPop > 0)) return 0;
+    return Math.sqrt(Math.min(1, pop / maxYearPop));
+  }
+  function originBubbleRadiusPx(pop, maxYearPop) {
+    var f = radiusFactorLabor(pop, maxYearPop);
+    return 0.3 + f * 24.7;
+  }
+  function flowParticleRadiusPxLabor(d, maxYearPop) {
+    var f = radiusFactorLabor(d.pop, maxYearPop);
+    return 0.35 + f * 25.65;
+  }
+
+  /** 호를 따라 한 번에 하나의 맥만 이동 (느린 주기는 tick에서 설정) */
+  var NUM_FLOW_PASSES = 1;
+  var FLOW_CYCLE_EXPORT_MS = 6400;
+  var FLOW_CYCLE_LABOR_MS = 5200;
+
+  function parseCSVExport(text) {
+    var lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    var header = lines[0].split(",").map(function (h) { return h.trim(); });
+    var need = ["source_latitude","source_longitude","target_latitude","target_longitude","year","amount","target_country"];
+    for (var ni = 0; ni < need.length; ni++) {
+      if (header.indexOf(need[ni]) < 0) throw new Error("CSV 열 누락: " + need[ni]);
+    }
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line.trim()) continue;
+      var parts = [], cur = "", q = false;
+      for (var j = 0; j < line.length; j++) {
+        var ch = line[j];
+        if (ch === '"') { q = !q; continue; }
+        if (!q && ch === ",") { parts.push(cur); cur = ""; continue; }
+        cur += ch;
+      }
+      parts.push(cur);
+      if (parts.length < header.length) continue;
+      var row = {};
+      header.forEach(function (h, k) { row[h] = (parts[k] || "").trim(); });
+      rows.push({
+        source_latitude: parseFloat(row.source_latitude),
+        source_longitude: parseFloat(row.source_longitude),
+        target_latitude: parseFloat(row.target_latitude),
+        target_longitude: parseFloat(row.target_longitude),
+        year: parseInt(row.year, 10),
+        amount: parseFloat(row.amount),
+        target_country: row.target_country
+      });
+    }
+    return rows.filter(function (r) { return isFinite(r.year) && isFinite(r.amount); });
+  }
+
+  function parseCSVLabor(text) {
+    var lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    var header = lines[0].split(",").map(function (h) { return h.trim(); });
+    var need = ["id","source_city","source_latitude","source_longitude","target_city","target_latitude","target_longitude","pop","year"];
+    for (var ni = 0; ni < need.length; ni++) {
+      if (header.indexOf(need[ni]) < 0) throw new Error("CSV 열 누락: " + need[ni]);
+    }
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line.trim()) continue;
+      var parts = [], cur = "", q = false;
+      for (var j = 0; j < line.length; j++) {
+        var ch = line[j];
+        if (ch === '"') { q = !q; continue; }
+        if (!q && ch === ",") { parts.push(cur); cur = ""; continue; }
+        cur += ch;
+      }
+      parts.push(cur);
+      if (parts.length < header.length) continue;
+      var row = {};
+      header.forEach(function (h, k) { row[h] = (parts[k] || "").trim(); });
+      rows.push({
+        id: parseInt(row.id, 10),
+        source_city: row.source_city,
+        source_latitude: parseFloat(row.source_latitude),
+        source_longitude: parseFloat(row.source_longitude),
+        target_city: row.target_city,
+        target_latitude: parseFloat(row.target_latitude),
+        target_longitude: parseFloat(row.target_longitude),
+        pop: parseFloat(row.pop),
+        year: parseInt(row.year, 10)
+      });
+    }
+    return rows.filter(function (r) {
+      return isFinite(r.year) && isFinite(r.pop) && isFinite(r.source_latitude) && isFinite(r.target_latitude);
+    });
+  }
+
+  var elSlider = document.getElementById("yearSlider");
+  var elYear = document.getElementById("yearLabel");
+  var elPlay = document.getElementById("btnPlay");
+  var elPause = document.getElementById("btnPause");
+  var elErr = document.getElementById("err");
+  var elLegendExport = document.getElementById("legendItemsExport");
+  var elLegendLabor = document.getElementById("legendItemsLabor");
+  var btnModeExport = document.getElementById("btnModeExport");
+  var btnModeLabor = document.getElementById("btnModeLabor");
+  var elChartTitleBar = document.getElementById("chartTitleBar");
+  var elChartTitleYears = document.getElementById("chartTitleYears");
+
+  var currentMode = "export";
+  var rowsExport = [];
+  var rowsLabor = [];
+  var dataReady = false;
+  var globalMaxPop = 1;
+  var sourceLabelPos = {};
+  var fushunPos = [123.9570231, 41.87908595];
+  var hubTargetCityName = "Fushun";
+  function getYearMin() { return currentMode === "export" ? 1908 : 1916; }
+  function getYearMax() { return currentMode === "export" ? 1919 : 1921; }
+
+  var map = new maplibregl.Map({
+    container: "map",
+    style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    center: [125.5, 38], zoom: 3.4, pitch: 28, bearing: -18,
+    attributionControl: true
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+
+  var allRows = [];
+  var maxAmountGlobal = 1;
+  var targetGeoPos = {};
+  var animTimer = null;
+  var playing = false;
+  var currentYear = 1908;
+  var rafStarted = false;
+  var chartBar = null;
+  var chartPie = null;
+  var chartYears = null;
+  var elChartYearEcho = null;
+  var yearTotalsByYear = {};
+  var maxTotalAllYears = 1;
+
+  /** 목적지 라벨 위치: 원·호와 겹침 완화 (수출) */
+  function labelLngLatExport(lng, lat) {
+    return [lng + 0.06, lat - 0.16];
+  }
+  /** 노동: 허브·출발지 라벨 오프셋 */
+  function labelLngLatLabor(lng, lat, kind) {
+    var dLng = kind === "hub" ? 0.045 : 0.06;
+    var dLat = kind === "hub" ? -0.11 : -0.16;
+    return [lng + dLng, lat + dLat];
+  }
+
+  function chartRgbaFromAmount(amt, denom) {
+    var d = denom > 0 ? denom : 1;
+    var c = amountHeatRGBA(amt, d, 224);
+    return "rgba(" + c[0] + "," + c[1] + "," + c[2] + ",0.88)";
+  }
+
+  var overlay = new deck.MapboxOverlay({
+    interleaved: false,
+    layers: [],
+    getTooltip: function (info) {
+      var o = info.object;
+      if (!o) return null;
+      if (currentMode === "export") {
+        var name = COUNTRY_LABEL[o.target_country] || regionKeyDisplay(o.target_country);
+        if (o.kind === "targetBubble") {
+          return { html: "<div><strong>" + name + "</strong> · " + (CITY_NAME_KO[o.target_country] || "") + "<br/>" + o.year + "년 수출: <strong>" + o.amount + " ton</strong></div>" };
+        }
+        return { html: "<div><strong>" + name + "</strong><br/>수출량: " + o.amount + " ton<br/>연도: " + o.year + "</div>" };
+      }
+      if (o.kind === "hub") {
+        return { html: "<div><strong>무순 유입 합계</strong><br/>" + o.year + "년: <strong>" + Math.round(o.totalPop) + " 명</strong></div>" };
+      }
+      if (o.kind === "targetBubble") {
+        var nk = CITY_KO[o.source_city] || o.source_city;
+        return { html: "<div><strong>" + nk + "</strong> (" + o.source_city + ")<br/>" + o.year + "년 유입: <strong>" + o.pop + " 명</strong></div>" };
+      }
+      var nameL = CITY_KO[o.source_city] || o.source_city;
+      return { html: "<div><strong>" + nameL + "</strong> → 무순<br/>유입: " + o.pop + " 명<br/>연도: " + o.year + "</div>" };
+    }
+  });
+  var labelOverlay = new deck.MapboxOverlay({ interleaved: false, layers: [] });
+  map.addControl(overlay);
+  map.addControl(labelOverlay);
+
+  function passThroughPointerForLabelDeckCanvas() {
+    try {
+      var wrap = map.getCanvasContainer();
+      if (!wrap) return;
+      var canvases = wrap.querySelectorAll("canvas");
+      if (canvases.length < 2) return;
+      canvases[canvases.length - 1].style.pointerEvents = "none";
+    } catch (e) {}
+  }
+
+  function dataForYear(year) {
+    return allRows.filter(function (d) { return d.year === year; });
+  }
+
+  function aggregateByTarget(year) {
+    var raw = allRows.filter(function (d) { return d.year === year; });
+    var by = {};
+    raw.forEach(function (d) {
+      var k = d.target_country;
+      by[k] = (by[k] || 0) + (d.amount > 0 ? d.amount : 0);
+    });
+    var keys = Object.keys(by).sort();
+    return {
+      keys: keys,
+      vals: keys.map(function (k) { return by[k]; }),
+      labelsKo: keys.map(function (k) {
+        return (COUNTRY_LABEL[k] || k) + " · " + (CITY_NAME_KO[k] || "");
+      })
+    };
+  }
+
+  function aggregateBySource(year) {
+    var raw = allRows.filter(function (d) { return d.year === year; });
+    var by = {};
+    raw.forEach(function (d) {
+      var k = d.source_city;
+      by[k] = (by[k] || 0) + (d.pop > 0 ? d.pop : 0);
+    });
+    var keys = Object.keys(by).sort();
+    return { keys: keys, vals: keys.map(function (k) { return by[k]; }) };
+  }
+
+  function setYear(y) {
+    currentYear = y;
+    elYear.textContent = String(y);
+    if (elChartYearEcho) elChartYearEcho.textContent = String(y);
+    updateCharts();
+  }
+
+  function updateCharts() {
+    if (!chartBar || typeof Chart === "undefined") return;
+    var ymin = getYearMin();
+    var ymax = getYearMax();
+    if (currentMode === "export") {
+      var agg = aggregateByTarget(currentYear);
+      var labels = agg.labelsKo.length ? agg.labelsKo : agg.keys;
+      var vals = agg.vals;
+      var denom = maxAmountGlobal > 0 ? maxAmountGlobal : 1;
+      var colors = vals.map(function (v) {
+        return chartRgbaFromAmount(v, denom);
+      });
+      chartBar.data.labels = labels;
+      chartBar.data.datasets[0].data = vals;
+      chartBar.data.datasets[0].backgroundColor = colors;
+      chartBar.update("none");
+      var pieLabels = [];
+      var pieVals = [];
+      var pieColors = [];
+      for (var i = 0; i < labels.length; i++) {
+        if (vals[i] > 0) {
+          pieLabels.push(labels[i]);
+          pieVals.push(vals[i]);
+          pieColors.push(colors[i]);
+        }
+      }
+      if (!pieVals.length) {
+        pieLabels = ["(수출 0)"];
+        pieVals = [1];
+        pieColors = ["rgba(220,220,220,0.5)"];
+      }
+      chartPie.data.labels = pieLabels;
+      chartPie.data.datasets[0].data = pieVals;
+      chartPie.data.datasets[0].backgroundColor = pieColors;
+      chartPie.update("none");
+      var ys = [];
+      var ts = [];
+      for (var y = ymin; y <= ymax; y++) {
+        ys.push(String(y));
+        ts.push(yearTotalsByYear[y] || 0);
+      }
+      chartYears.data.labels = ys;
+      chartYears.data.datasets[0].data = ts;
+      chartYears.data.datasets[0].label = "총 수출 (ton)";
+      var bg = ys.map(function (lab) {
+        return parseInt(lab, 10) === currentYear ? "rgba(255, 28, 145, 0.85)" : "rgba(255, 180, 220, 0.45)";
+      });
+      chartYears.data.datasets[0].backgroundColor = bg;
+      chartYears.update("none");
+    } else {
+      var aggL = aggregateBySource(currentYear);
+      var labelsL = aggL.keys;
+      var valsL = aggL.vals;
+      var colorsL = valsL.map(function (v) {
+        var t = !(v > 0) || globalMaxPop <= 0 ? 0 : Math.pow(Math.min(1, v / globalMaxPop), 0.48);
+        var rgb = lerp3(COLOR_WHITE, COLOR_DARK_YELLOW, t);
+        return "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0.88)";
+      });
+      chartBar.data.labels = labelsL;
+      chartBar.data.datasets[0].data = valsL;
+      chartBar.data.datasets[0].backgroundColor = colorsL;
+      chartBar.update("none");
+      var pieLabels2 = [];
+      var pieVals2 = [];
+      var pieColors2 = [];
+      for (var j = 0; j < labelsL.length; j++) {
+        if (valsL[j] > 0) {
+          pieLabels2.push(labelsL[j]);
+          pieVals2.push(valsL[j]);
+          pieColors2.push(colorsL[j]);
+        }
+      }
+      if (!pieVals2.length) {
+        pieLabels2 = ["(유입 0)"];
+        pieVals2 = [1];
+        pieColors2 = ["rgba(220,220,220,0.5)"];
+      }
+      chartPie.data.labels = pieLabels2;
+      chartPie.data.datasets[0].data = pieVals2;
+      chartPie.data.datasets[0].backgroundColor = pieColors2;
+      chartPie.update("none");
+      var ys2 = [];
+      var ts2 = [];
+      for (var y2 = ymin; y2 <= ymax; y2++) {
+        ys2.push(String(y2));
+        ts2.push(yearTotalsByYear[y2] || 0);
+      }
+      chartYears.data.labels = ys2;
+      chartYears.data.datasets[0].data = ts2;
+      chartYears.data.datasets[0].label = "총 유입 (명)";
+      var bg2 = ys2.map(function (lab) {
+        return parseInt(lab, 10) === currentYear ? "rgba(255, 190, 60, 0.95)" : "rgba(255, 224, 140, 0.55)";
+      });
+      chartYears.data.datasets[0].backgroundColor = bg2;
+      chartYears.update("none");
+    }
+  }
+
+  function destroyCharts() {
+    try {
+      if (chartBar) { chartBar.destroy(); chartBar = null; }
+      if (chartPie) { chartPie.destroy(); chartPie = null; }
+      if (chartYears) { chartYears.destroy(); chartYears = null; }
+    } catch (e) {}
+  }
+
+  function initCharts() {
+    if (typeof Chart === "undefined") return;
+    destroyCharts();
+    elChartYearEcho = document.getElementById("chartYearEcho");
+    var commonOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    };
+    if (currentMode === "export") {
+      chartBar = new Chart(document.getElementById("chartBar").getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "수출 (ton)",
+            data: [],
+            backgroundColor: [],
+            borderColor: "rgba(180, 50, 120, 0.35)",
+            borderWidth: 1
+          }]
+        },
+        options: Object.assign({}, commonOpts, {
+          scales: {
+            x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 0 } },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "ton", color: "#6a7080", font: { size: 10, weight: "600" } },
+              ticks: { font: { size: 9 } }
+            }
+          },
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: function (ctx) {
+              var v = ctx.parsed && ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.raw;
+              return " 수출: " + v + " ton";
+            }
+          } } }
+        })
+      });
+      chartPie = new Chart(document.getElementById("chartPie").getContext("2d"), {
+        type: "doughnut",
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: [],
+            borderColor: "#fff",
+            borderWidth: 2
+          }]
+        },
+        options: Object.assign({}, commonOpts, {
+          cutout: "52%",
+          plugins: {
+            legend: { position: "right", labels: { boxWidth: 10, font: { size: 9 } } },
+            tooltip: { callbacks: { label: function (ctx) {
+              var v = ctx.raw;
+              if (ctx.label === "(수출 0)") return " 해당 연도 양수 수출 없음";
+              var sum = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+              var pct = sum ? ((v / sum) * 100).toFixed(1) : "0";
+              return " " + ctx.label + ": " + v + " ton (" + pct + "%)";
+            } } }
+          }
+        })
+      });
+      chartYears = new Chart(document.getElementById("chartYears").getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "총 수출 (ton)",
+            data: [],
+            backgroundColor: []
+          }]
+        },
+        options: Object.assign({}, commonOpts, {
+          scales: {
+            x: { ticks: { font: { size: 10 } } },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "ton", color: "#6a7080", font: { size: 10, weight: "600" } },
+              ticks: { font: { size: 9 } }
+            }
+          },
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: function (ctx) {
+              var v = ctx.parsed && ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.raw;
+              return " 연도 합계: " + v + " ton";
+            }
+          } } }
+        })
+      });
+    } else {
+      chartBar = new Chart(document.getElementById("chartBar").getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "유입 (명)",
+            data: [],
+            backgroundColor: [],
+            borderColor: "rgba(90,82,40,0.35)",
+            borderWidth: 1
+          }]
+        },
+        options: Object.assign({}, commonOpts, {
+          scales: {
+            x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 0 } },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "명", color: "#6a7080", font: { size: 10, weight: "600" } },
+              ticks: { font: { size: 9 } }
+            }
+          },
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: function (ctx) {
+              var v = ctx.parsed && ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.raw;
+              return " 유입: " + v + " 명";
+            }
+          } } }
+        })
+      });
+      chartPie = new Chart(document.getElementById("chartPie").getContext("2d"), {
+        type: "doughnut",
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: [],
+            borderColor: "#fff",
+            borderWidth: 2
+          }]
+        },
+        options: Object.assign({}, commonOpts, {
+          cutout: "52%",
+          plugins: {
+            legend: { position: "right", labels: { boxWidth: 10, font: { size: 9 } } },
+            tooltip: { callbacks: { label: function (ctx) {
+              var v = ctx.raw;
+              if (ctx.label === "(유입 0)") return " 해당 연도 양수 유입 없음";
+              var sum = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+              var pct = sum ? ((v / sum) * 100).toFixed(1) : "0";
+              return " " + ctx.label + ": " + v + " 명 (" + pct + "%)";
+            } } }
+          }
+        })
+      });
+      chartYears = new Chart(document.getElementById("chartYears").getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "총 유입 (명)",
+            data: [],
+            backgroundColor: []
+          }]
+        },
+        options: Object.assign({}, commonOpts, {
+          scales: {
+            x: { ticks: { font: { size: 10 } } },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "명", color: "#6a7080", font: { size: 10, weight: "600" } },
+              ticks: { font: { size: 9 } }
+            }
+          },
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: function (ctx) {
+              var v = ctx.parsed && ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.raw;
+              return " 연도 합계: " + v + " 명";
+            }
+          } } }
+        })
+      });
+    }
+    updateCharts();
+  }
+
+  function buildLayersExport(flowT) {
+    var rawYear = dataForYear(currentYear);
+    var data = rawYear.filter(function (d) { return d.amount > 0; });
+    var maxYearAmt = data.reduce(function (m, d) { return Math.max(m, d.amount); }, 0.001);
+
+    function arcCol(d) {
+      return amountHeatRGBA(d.amount, maxYearAmt, 205);
+    }
+
+    var arcs = new deck.ArcLayer({
+      id: "arc-main",
+      data: data,
+      pickable: true,
+      autoHighlight: true,
+      highlightColor: [200, 40, 120, 230],
+      greatCircle: true,
+      numSegments: 64,
+      parameters: { depthTest: false, depthMask: false },
+      getSourcePosition: function (d) { return [d.source_longitude, d.source_latitude]; },
+      getTargetPosition: function (d) { return [d.target_longitude, d.target_latitude]; },
+      getSourceColor: function (d) { return arcCol(d); },
+      getTargetColor: function (d) { return arcCol(d); },
+      getWidth: 1,
+      getHeight: 0.34,
+      widthMinPixels: 4,
+      widthMaxPixels: 4,
+      updateTriggers: { getSourceColor: [currentYear], getTargetColor: [currentYear] }
+    });
+
+    var bubbles = data.map(function (d) {
+      var c = amountHeatRGBA(d.amount, maxYearAmt, 205);
+      var r = exportBubbleRadiusPx(d.amount, maxYearAmt);
+      return {
+        kind: "targetBubble",
+        position: [d.target_longitude, d.target_latitude],
+        radius: r,
+        fill: c,
+        line: [160, 45, 105, 210],
+        year: d.year,
+        amount: d.amount,
+        target_country: d.target_country
+      };
+    });
+
+    var targetBubbles = new deck.ScatterplotLayer({
+      id: "target-export-bubbles",
+      data: bubbles,
+      parameters: { depthTest: false, depthMask: false },
+      pickable: true,
+      getPosition: function (b) { return b.position; },
+      getRadius: function (b) { return b.radius; },
+      radiusUnits: "pixels",
+      stroked: true,
+      lineWidthMinPixels: 1,
+      getFillColor: function (b) { return b.fill; },
+      getLineColor: function (b) { return b.line; },
+      updateTriggers: { getRadius: [currentYear], getFillColor: [currentYear] }
+    });
+
+    var particles = [];
+    data.forEach(function (d) {
+      var R = flowParticleRadiusPx(d, maxYearAmt);
+      var pass;
+      for (pass = 0; pass < NUM_FLOW_PASSES; pass++) {
+        var uHead = (flowT + d._phase + pass / Math.max(1, NUM_FLOW_PASSES)) % 1;
+        particles.push({ parent: d, t: uHead, k: 1, rad: R });
+      }
+    });
+
+    var heads = new deck.ScatterplotLayer({
+      id: "flow-heads",
+      data: particles,
+      parameters: { depthTest: false, depthMask: false },
+      pickable: false,
+      getPosition: function (p) {
+        var u = ((p.t % 1) + 1) % 1;
+        return interpolateAlongPath(p.parent._path, u);
+      },
+      getRadius: function (p) { return p.rad * p.k; },
+      radiusUnits: "pixels",
+      stroked: true,
+      lineWidthMinPixels: 1,
+      getFillColor: function (p) {
+        return amountHeatRGBA(p.parent.amount, maxYearAmt, Math.round(252 * p.k));
+      },
+      getLineColor: function (p) {
+        return [120, 45, 85, Math.round(190 * p.k)];
+      }
+    });
+
+    var LABEL_FILL = [26, 28, 36, 255];
+    var LABEL_OUTLINE = [255, 252, 248, 240];
+    var textData = [];
+    Object.keys(targetGeoPos).sort().forEach(function (k) {
+      var pos = targetGeoPos[k];
+      if (!pos) return;
+      var ll = labelLngLatExport(pos[0], pos[1]);
+      var line2 = (COUNTRY_LABEL[k] || k) + " · " + (CITY_NAME_KO[k] || "");
+      textData.push({
+        position: ll,
+        text: regionKeyDisplay(k) + "\n" + line2,
+        size: 12,
+        offset: [0, 0]
+      });
+    });
+
+    var labels = new deck.TextLayer({
+      id: "city-labels",
+      data: textData,
+      pickable: false,
+      getPosition: function (t) { return t.position; },
+      getText: function (t) { return t.text; },
+      getSize: function (t) { return t.size; },
+      getColor: function () { return LABEL_FILL; },
+      getPixelOffset: function (t) { return t.offset || [0, 0]; },
+      getTextAnchor: "middle",
+      getAlignmentBaseline: "center",
+      fontFamily: "Segoe UI, system-ui, sans-serif",
+      fontWeight: "800",
+      outlineWidth: 4,
+      outlineColor: LABEL_OUTLINE,
+      billboard: true,
+      maxWidth: -1,
+      parameters: { depthTest: false, depthMask: false },
+      updateTriggers: { getText: [currentYear], getSize: [currentYear] }
+    });
+
+    return {
+      main: [arcs, heads, targetBubbles],
+      labels: [labels]
+    };
+  }
+
+  function buildLayersLabor(flowT) {
+    var raw = dataForYear(currentYear);
+    var data = raw.filter(function (d) { return d.pop > 0; });
+    var maxYearPop = data.reduce(function (m, d) { return Math.max(m, d.pop); }, 0.001);
+    var totalPop = raw.reduce(function (s, d) { return s + (d.pop > 0 ? d.pop : 0); }, 0);
+
+    function arcCol(d) {
+      return laborHeatRGBA(d.pop, maxYearPop, 210);
+    }
+    function arcWidthPx(d) {
+      var f = radiusFactorLabor(d.pop, maxYearPop);
+      return 1.1 + f * 4.4;
+    }
+
+    var arcs = new deck.ArcLayer({
+      id: "arc-labor",
+      data: data,
+      pickable: true,
+      autoHighlight: true,
+      highlightColor: [40, 45, 60, 220],
+      greatCircle: true,
+      numSegments: 64,
+      parameters: { depthTest: false, depthMask: false },
+      widthUnits: "pixels",
+      getSourcePosition: function (d) { return [d.source_longitude, d.source_latitude]; },
+      getTargetPosition: function (d) { return [d.target_longitude, d.target_latitude]; },
+      getSourceColor: arcCol,
+      getTargetColor: arcCol,
+      getWidth: arcWidthPx,
+      getHeight: 0.26,
+      widthMinPixels: 1.5,
+      widthMaxPixels: 5,
+      updateTriggers: { getSourceColor: [currentYear], getTargetColor: [currentYear], getWidth: [currentYear] }
+    });
+
+    var hubR = 0;
+    if (totalPop > 0 && maxTotalAllYears > 0) {
+      var hf = Math.sqrt(Math.min(1, totalPop / maxTotalAllYears));
+      hubR = 2.2 + hf * 49.8;
+    } else if (totalPop > 0) {
+      hubR = 2.2 + Math.min(48, Math.sqrt(totalPop) * 1.85);
+    }
+    var hubBubble = {
+      kind: "hub",
+      position: fushunPos,
+      radius: hubR,
+      fill: laborHeatRGBA(Math.max(totalPop, 1), Math.max(globalMaxPop, maxYearPop, 1), 175),
+      year: currentYear,
+      totalPop: totalPop
+    };
+
+    var hubLayer = new deck.ScatterplotLayer({
+      id: "fushun-hub",
+      data: [hubBubble],
+      parameters: { depthTest: false, depthMask: false },
+      pickable: true,
+      getPosition: function (b) { return b.position; },
+      getRadius: function (b) { return b.radius; },
+      radiusUnits: "pixels",
+      stroked: true,
+      lineWidthMinPixels: 2,
+      getFillColor: function (b) { return b.fill; },
+      getLineColor: [120, 95, 35, 230],
+      updateTriggers: { getRadius: [currentYear], getFillColor: [currentYear] }
+    });
+
+    var originBubbles = data.map(function (d) {
+      var c = laborHeatRGBA(d.pop, maxYearPop, 200);
+      var r = originBubbleRadiusPx(d.pop, maxYearPop);
+      return {
+        kind: "targetBubble",
+        position: [d.source_longitude, d.source_latitude],
+        radius: r,
+        fill: c,
+        year: d.year,
+        pop: d.pop,
+        source_city: d.source_city
+      };
+    });
+
+    var originLayer = new deck.ScatterplotLayer({
+      id: "origin-bubbles",
+      data: originBubbles,
+      parameters: { depthTest: false, depthMask: false },
+      pickable: true,
+      getPosition: function (b) { return b.position; },
+      getRadius: function (b) { return b.radius; },
+      radiusUnits: "pixels",
+      stroked: true,
+      lineWidthMinPixels: 1,
+      getFillColor: function (b) { return b.fill; },
+      getLineColor: [105, 88, 40, 218],
+      updateTriggers: { getRadius: [currentYear], getFillColor: [currentYear] }
+    });
+
+    var particles = [];
+    data.forEach(function (d) {
+      var R = flowParticleRadiusPxLabor(d, maxYearPop);
+      var pass;
+      for (pass = 0; pass < NUM_FLOW_PASSES; pass++) {
+        var uHead = (flowT + d._phase + pass / Math.max(1, NUM_FLOW_PASSES)) % 1;
+        particles.push({ parent: d, t: uHead, k: 1, rad: R });
+      }
+    });
+
+    var heads = new deck.ScatterplotLayer({
+      id: "flow-heads-labor",
+      data: particles,
+      parameters: { depthTest: false, depthMask: false },
+      pickable: false,
+      getPosition: function (p) {
+        var u = ((p.t % 1) + 1) % 1;
+        return interpolateAlongPath(p.parent._path, u);
+      },
+      getRadius: function (p) { return p.rad * p.k; },
+      radiusUnits: "pixels",
+      stroked: true,
+      lineWidthMinPixels: 1,
+      getFillColor: function (p) {
+        return laborHeatRGBA(p.parent.pop, maxYearPop, Math.round(245 * p.k));
+      },
+      getLineColor: function (p) {
+        return [95, 78, 30, Math.round(190 * p.k)];
+      }
+    });
+
+    var LABEL_FILL = [26, 28, 36, 255];
+    var LABEL_OUTLINE = [255, 252, 248, 240];
+    var hubLL = labelLngLatLabor(fushunPos[0], fushunPos[1], "hub");
+    var hubLine1 = hubTargetCityName || "Fushun";
+    var hubLine2 = cityKoLine(hubLine1);
+    var textData = [
+      {
+        position: hubLL,
+        text: hubLine1 + "\n" + hubLine2,
+        size: 15,
+        offset: [0, 0]
+      }
+    ];
+    Object.keys(sourceLabelPos).forEach(function (key) {
+      var pos = sourceLabelPos[key];
+      var ll = labelLngLatLabor(pos[0], pos[1], "source");
+      var ko = cityKoLine(key);
+      textData.push({
+        position: ll,
+        text: key + "\n" + ko,
+        size: 13,
+        offset: [0, 0]
+      });
+    });
+
+    var labels = new deck.TextLayer({
+      id: "labels-labor",
+      data: textData,
+      pickable: false,
+      getPosition: function (t) { return t.position; },
+      getText: function (t) { return t.text; },
+      getSize: function (t) { return t.size; },
+      getColor: function () { return LABEL_FILL; },
+      getPixelOffset: function (t) { return t.offset || [0, 0]; },
+      getTextAnchor: "middle",
+      getAlignmentBaseline: "center",
+      fontFamily: "Segoe UI, system-ui, sans-serif",
+      fontWeight: "800",
+      outlineWidth: 4,
+      outlineColor: LABEL_OUTLINE,
+      billboard: true,
+      maxWidth: -1,
+      parameters: { depthTest: false, depthMask: false }
+    });
+
+    return {
+      main: [arcs, heads, originLayer, hubLayer],
+      labels: [labels]
+    };
+  }
+
+  function buildLayers(flowT) {
+    return currentMode === "export" ? buildLayersExport(flowT) : buildLayersLabor(flowT);
+  }
+
+  function tick() {
+    var cyc = currentMode === "export" ? FLOW_CYCLE_EXPORT_MS : FLOW_CYCLE_LABOR_MS;
+    var flowT = (performance.now() / cyc) % 1;
+    var L = buildLayers(flowT);
+    overlay.setProps({ layers: L.main });
+    labelOverlay.setProps({ layers: L.labels });
+    requestAnimationFrame(tick);
+  }
+
+  function startAnimLoop() {
+    if (rafStarted) return;
+    rafStarted = true;
+    requestAnimationFrame(tick);
+  }
+
+  elSlider.addEventListener("input", function () {
+    setYear(parseInt(elSlider.value, 10));
+  });
+
+  function stopPlay() {
+    playing = false;
+    if (animTimer) { clearInterval(animTimer); animTimer = null; }
+    syncTransportUi();
+  }
+  elPlay.addEventListener("click", function () {
+    if (playing) return;
+    playing = true;
+    syncTransportUi();
+    animTimer = setInterval(function () {
+      var ymin = getYearMin();
+      var ymax = getYearMax();
+      var y = parseInt(elSlider.value, 10);
+      y = y >= ymax ? ymin : y + 1;
+      elSlider.value = String(y);
+      setYear(y);
+    }, currentMode === "export" ? 1300 : 1400);
+  });
+  elPause.addEventListener("click", stopPlay);
+
+  function syncTransportUi() {
+    elPlay.classList.toggle("transport-on", playing);
+    elPause.classList.toggle("transport-on", !playing);
+  }
+  syncTransportUi();
+
+  function loadCsvExport(cb) {
+    function useEmbedded() { cb(null, decodeCsvB64(EMBEDDED_CSV_B64)); }
+    if (location.protocol !== "http:" && location.protocol !== "https:") {
+      useEmbedded();
+      return;
+    }
+    fetch(CSV_URL)
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(new Error("HTTP " + r.status)); })
+      .then(function (t) { cb(null, t); })
+      .catch(function () { useEmbedded(); });
+  }
+
+  function loadCsvLabor(cb) {
+    function useEmbedded() { cb(null, decodeCsvB64(EMBEDDED_LABOR_CSV_B64)); }
+    if (location.protocol !== "http:" && location.protocol !== "https:") {
+      useEmbedded();
+      return;
+    }
+    fetch(CSV_LABOR_URL)
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(new Error("HTTP " + r.status)); })
+      .then(function (t) { cb(null, t); })
+      .catch(function () { useEmbedded(); });
+  }
+
+  function refreshYearTotals() {
+    yearTotalsByYear = {};
+    maxTotalAllYears = 1;
+    var ymin = getYearMin();
+    var ymax = getYearMax();
+    var rows = currentMode === "export" ? rowsExport : rowsLabor;
+    for (var yy = ymin; yy <= ymax; yy++) {
+      var tot = 0;
+      if (currentMode === "export") {
+        tot = rows.reduce(function (s, d) {
+          if (d.year !== yy) return s;
+          return s + (d.amount > 0 ? d.amount : 0);
+        }, 0);
+      } else {
+        tot = rows.reduce(function (s, d) {
+          if (d.year !== yy) return s;
+          return s + (d.pop > 0 ? d.pop : 0);
+        }, 0);
+      }
+      yearTotalsByYear[yy] = tot;
+      maxTotalAllYears = Math.max(maxTotalAllYears, tot);
+    }
+    if (maxTotalAllYears < 1) maxTotalAllYears = 1;
+  }
+
+  function refreshExportLegendAndTotals() {
+    maxAmountGlobal = rowsExport.reduce(function (m, d) { return Math.max(m, d.amount || 0); }, 0.001);
+    targetGeoPos = {};
+    rowsExport.forEach(function (d) {
+      if (!targetGeoPos[d.target_country]) {
+        targetGeoPos[d.target_country] = [d.target_longitude, d.target_latitude];
+      }
+    });
+    while (elLegendExport.firstChild) elLegendExport.removeChild(elLegendExport.firstChild);
+    Object.keys(targetGeoPos).sort().forEach(function (key) {
+      var div = document.createElement("div");
+      div.className = "leg-item";
+      div.textContent = (COUNTRY_LABEL[key] || key) + " · " + (CITY_NAME_KO[key] || "") + " (" + regionKeyDisplay(key) + ")";
+      elLegendExport.appendChild(div);
+    });
+    refreshYearTotals();
+  }
+
+  function refreshLaborLegendAndTotals() {
+    globalMaxPop = rowsLabor.reduce(function (m, d) { return Math.max(m, d.pop || 0); }, 1);
+    if (rowsLabor.length) {
+      fushunPos = [rowsLabor[0].target_longitude, rowsLabor[0].target_latitude];
+      hubTargetCityName = String(rowsLabor[0].target_city || "Fushun").trim() || "Fushun";
+    }
+    var labelAcc = {};
+    rowsLabor.forEach(function (d) {
+      var k = d.source_city;
+      if (!labelAcc[k]) labelAcc[k] = { lng: 0, lat: 0, n: 0 };
+      labelAcc[k].lng += d.source_longitude;
+      labelAcc[k].lat += d.source_latitude;
+      labelAcc[k].n += 1;
+    });
+    sourceLabelPos = {};
+    Object.keys(labelAcc).forEach(function (k) {
+      var a = labelAcc[k];
+      sourceLabelPos[k] = [a.lng / a.n, a.lat / a.n];
+    });
+    while (elLegendLabor.firstChild) elLegendLabor.removeChild(elLegendLabor.firstChild);
+    Object.keys(sourceLabelPos).sort().forEach(function (c) {
+      var div = document.createElement("div");
+      div.className = "leg-item";
+      div.textContent = (CITY_KO[c] || c) + " · " + c;
+      elLegendLabor.appendChild(div);
+    });
+    refreshYearTotals();
+  }
+
+  function applyMode(mode) {
+    if (!dataReady) return;
+    stopPlay();
+    currentMode = mode;
+    document.body.className = mode === "export" ? "mode-export" : "mode-labor";
+    document.getElementById("storyExport").classList.toggle("is-hidden", mode !== "export");
+    document.getElementById("storyLabor").classList.toggle("is-hidden", mode !== "labor");
+    document.getElementById("legendExport").classList.toggle("is-hidden", mode !== "export");
+    document.getElementById("legendLabor").classList.toggle("is-hidden", mode !== "labor");
+    btnModeExport.classList.toggle("transport-on", mode === "export");
+    btnModeLabor.classList.toggle("transport-on", mode === "labor");
+    allRows = mode === "export" ? rowsExport : rowsLabor;
+    if (mode === "export") refreshExportLegendAndTotals();
+    else refreshLaborLegendAndTotals();
+    var ymin = getYearMin();
+    var ymax = getYearMax();
+    elSlider.min = ymin;
+    elSlider.max = ymax;
+    var y = Math.max(ymin, Math.min(ymax, currentYear));
+    currentYear = y;
+    elSlider.value = String(y);
+    if (mode === "export") {
+      map.jumpTo({ center: [125.5, 38], zoom: 3.4, pitch: 28, bearing: -18 });
+    } else {
+      map.jumpTo({ center: [121.35, 40.72], zoom: 5.15, pitch: 18, bearing: -8 });
+    }
+    elChartTitleBar.innerHTML = "선택 연도 (<span id=\"chartYearEcho\">" + y + "</span>) · " + (mode === "export" ? "목적지별 수출 · 단위 ton" : "출발지별 유입 · 단위 명");
+    elChartTitleYears.textContent = mode === "export" ? "1908–1919 · 연도별 총 수출 (ton)" : "1916–1921 · 연도별 총 유입 (명)";
+    elChartYearEcho = document.getElementById("chartYearEcho");
+    btnModeExport.setAttribute("aria-selected", mode === "export" ? "true" : "false");
+    btnModeLabor.setAttribute("aria-selected", mode === "labor" ? "true" : "false");
+    initCharts();
+    setYear(y);
+  }
+
+  btnModeExport.addEventListener("click", function () {
+    if (currentMode === "export") return;
+    applyMode("export");
+  });
+  btnModeLabor.addEventListener("click", function () {
+    if (currentMode === "labor") return;
+    applyMode("labor");
+  });
+
+  map.on("load", function () {
+    loadCsvExport(function (err, text) {
+      if (err) {
+        elErr.style.display = "block";
+        elErr.textContent = String(err);
+        return;
+      }
+      loadCsvLabor(function (err2, text2) {
+        if (err2) {
+          elErr.style.display = "block";
+          elErr.textContent = String(err2);
+          return;
+        }
+        try {
+          rowsExport = parseCSVExport(text);
+          rowsLabor = parseCSVLabor(text2);
+          if (!rowsLabor.length) throw new Error("노동 CSV 데이터 행이 없습니다.");
+          rowsExport.forEach(function (d) {
+            d._phase = hash01(d.target_country + "#" + d.year);
+            d._path = greatCirclePath(
+              [d.source_longitude, d.source_latitude],
+              [d.target_longitude, d.target_latitude],
+              96
+            );
+          });
+          rowsLabor.forEach(function (d) {
+            d._phase = hash01(d.source_city + "#" + d.year + "#" + d.id);
+            d._path = greatCirclePath(
+              [d.source_longitude, d.source_latitude],
+              [d.target_longitude, d.target_latitude],
+              96
+            );
+          });
+          dataReady = true;
+          elErr.style.display = "none";
+          applyMode("export");
+          startAnimLoop();
+          requestAnimationFrame(function () {
+            try { map.resize(); } catch (e) {}
+            passThroughPointerForLabelDeckCanvas();
+            setTimeout(passThroughPointerForLabelDeckCanvas, 50);
+            setTimeout(passThroughPointerForLabelDeckCanvas, 250);
+          });
+          window.addEventListener("resize", function () {
+            try { map.resize(); } catch (e2) {}
+            passThroughPointerForLabelDeckCanvas();
+          });
+        } catch (e) {
+          elErr.style.display = "block";
+          elErr.textContent = "CSV 파싱 오류: " + (e.message || e);
+        }
+      });
+    });
+  });
+})();
+  </script>
+</body>
+</html>
