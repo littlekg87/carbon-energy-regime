@@ -6,6 +6,8 @@
 
 ![status](https://img.shields.io/badge/type-self--contained%20HTML-blue) ![offline](https://img.shields.io/badge/offline-double--click-green) ![engine](https://img.shields.io/badge/engine-MapLibre%20%2B%20deck.gl-orange)
 
+**🌐 라이브 데모 → https://littlekg87.github.io/carbon-energy-regime/**
+
 ---
 
 ## ✨ 특징
@@ -64,6 +66,38 @@ README.md                              이 문서
 ## 🛠 기술 스택
 
 [MapLibre GL JS](https://maplibre.org/) 3.6.2 · [deck.gl](https://deck.gl/) 8.9.36 · [Chart.js](https://www.chartjs.org/) 4.4.1 — 모두 단일 HTML에 인라인.
+
+## 📌 인용 방법 (How to cite)
+
+이 자료(지도·데이터·코드)를 학술·비학술 목적으로 인용·활용하실 때는 아래 형식으로 출처를 밝혀 주세요.
+
+**국문**
+
+> 김근하, 「근현대 동아시아 탄소 에너지 레짐: 무순 통합 인터랙티브 지도」, 서강대학교 디지털역사연구소, 2026, https://github.com/littlekg87/carbon-energy-regime.
+
+**English**
+
+> Kim, Geun-ha. *Carbon Energy Regime in Modern East Asia: An Integrated Interactive Map of Fushun.* Sogang University Institute for Digital History, 2026. https://github.com/littlekg87/carbon-energy-regime.
+
+**BibTeX**
+
+```bibtex
+@misc{kim2026carbonregime,
+  author       = {Kim, Geun-ha},
+  title        = {Carbon Energy Regime in Modern East Asia: An Integrated Interactive Map of Fushun},
+  year         = {2026},
+  howpublished = {\url{https://github.com/littlekg87/carbon-energy-regime}},
+  note         = {Sogang University Institute for Digital History}
+}
+```
+
+> 데이터에 포함된 1차 사료를 함께 인용할 경우, 원 사료의 출전도 별도로 표기해 주세요.
+
+## 📮 문의 (Contact)
+
+이 연구 자료의 **활용 및 인용**과 관련한 문의는 아래로 연락해 주세요.
+
+- **김근하** (서강대학교 디지털역사연구소 선임연구원) · **littlekg@naver.com**
 
 ## 📄 라이선스 / 크레딧
 
